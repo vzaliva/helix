@@ -532,6 +532,86 @@ Section Eval_Denote_Equiv.
     - rewrite tau_euttge, unfold_interp_state; eauto.
   Admitted.
 
+  Instance interp_Mem_Ret_equiv_proper
+    {A} {e : Equiv A} {EQ : @Equivalence A e}: forall a,
+    Proper (equiv ==> eutt equiv) (@interp_Mem A (Ret a)).
+  Proof.
+    repeat intro.
+    rewrite 2 interp_Mem_ret.
+    apply eqit_Ret.
+    split; cbn; auto.
+  Qed.
+
+  Instance interp_Mem_throw_equiv_proper
+    {A} {e : Equiv A} {EQ : @Equivalence A e}: forall s,
+    Proper (equiv ==> eutt equiv) (@interp_Mem A (throw s)).
+  Proof.
+    repeat intro.
+    unfold interp_Mem, throw.
+    rewrite 2 interp_state_vis.
+    cbn.
+    unshelve eapply eutt_clo_bind with (UU := equiv).
+    - eapply (@products.prod_equiv memoryH equiv void eq).
+    - apply eqit_Vis.
+      intro.
+      apply eutt_Ret.
+      split; cbn; auto.
+    - intros.
+      break_match.
+  Qed.
+
+  Instance interp_Mem_denoteAExpr_equiv_proper:
+    forall σ f, Proper (equiv ==> eutt equiv)
+                       (interp_Mem (denoteAExpr σ f)).
+  Proof.
+    intros σ f mem mem' EQM.
+    induction f.
+    - cbn.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      + unfold lift_Serr.
+        break_match.
+        * apply interp_Mem_throw_equiv_proper.
+          assumption.
+        * destruct p; cbn.
+          apply interp_Mem_Ret_equiv_proper; auto.
+      + clear; intros.
+        destruct u1 as [mem1 [v1 b1]].
+        destruct u2 as [mem2 [v2 b2]].
+        destruct H as [H1 [H2 H3]].
+        cbn in H1, H2, H3.
+        do 2 break_match.
+        all: try inv H2.
+        1, 3: apply interp_Mem_throw_equiv_proper; auto.
+        repeat red in H4; rewrite H4.
+        apply interp_Mem_Ret_equiv_proper; auto.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+  Admitted.
+
+  Instance interp_Mem_denoteDSHIMap_equiv_proper:
+    forall n f σ m1 m2,
+      Proper (equiv ==> eutt equiv)
+             (interp_Mem (denoteDSHIMap n f σ m1 m2)).
+  Proof.
+    admit.
+  Admitted.
+
+  Instance interp_Mem_denoteDSHBinOp_equiv_proper:
+    forall n off f σ m1 m2,
+      Proper (equiv ==> eutt equiv)
+             (interp_Mem (denoteDSHBinOp n off f σ m1 m2)).
+  Proof.
+    admit.
+  Admitted.
+
   Lemma Denote_Eval_Equiv_NExpr: forall mem σ e v,
       evalNExpr σ e ≡ inr v ->
       eutt Logic.eq
@@ -592,12 +672,9 @@ Section Eval_Denote_Equiv.
       rewrite interp_Mem_bind.
 
       symmetry in MEM'.
-      assert (T : eutt equiv (denoteAExpr σ e2) (denoteAExpr σ e2))
-        by reflexivity.
-      rewrite (interp_Mem_equiv_proper
-                 (denoteAExpr σ e2) (denoteAExpr σ e2) T
-                 mem mem' MEM') in IHe2.
-      clear T.
+
+      rewrite (interp_Mem_denoteAExpr_equiv_proper
+                 σ e2 mem mem' MEM') in IHe2.
 
       bind_ret_l_with IHe2.
       destruct a' as (mem'', b0'); invc EH.
@@ -622,12 +699,8 @@ Section Eval_Denote_Equiv.
       rewrite interp_Mem_bind.
 
       symmetry in MEM'.
-      assert (T : eutt equiv (denoteAExpr σ e2) (denoteAExpr σ e2))
-        by reflexivity.
-      rewrite (interp_Mem_equiv_proper
-                 (denoteAExpr σ e2) (denoteAExpr σ e2) T
-                 mem mem' MEM') in IHe2.
-      clear T.
+      rewrite (interp_Mem_denoteAExpr_equiv_proper
+                 σ e2 mem mem' MEM') in IHe2.
 
       bind_ret_l_with IHe2.
       destruct a' as (mem'', b0'); invc EH.
@@ -652,12 +725,8 @@ Section Eval_Denote_Equiv.
       rewrite interp_Mem_bind.
 
       symmetry in MEM'.
-      assert (T : eutt equiv (denoteAExpr σ e2) (denoteAExpr σ e2))
-        by reflexivity.
-      rewrite (interp_Mem_equiv_proper
-                 (denoteAExpr σ e2) (denoteAExpr σ e2) T
-                 mem mem' MEM') in IHe2.
-      clear T.
+      rewrite (interp_Mem_denoteAExpr_equiv_proper
+                 σ e2 mem mem' MEM') in IHe2.
 
       bind_ret_l_with IHe2.
       destruct a' as (mem'', b0'); invc EH.
@@ -682,12 +751,8 @@ Section Eval_Denote_Equiv.
       rewrite interp_Mem_bind.
 
       symmetry in MEM'.
-      assert (T : eutt equiv (denoteAExpr σ e2) (denoteAExpr σ e2))
-        by reflexivity.
-      rewrite (interp_Mem_equiv_proper
-                 (denoteAExpr σ e2) (denoteAExpr σ e2) T
-                 mem mem' MEM') in IHe2.
-      clear T.
+      rewrite (interp_Mem_denoteAExpr_equiv_proper
+                 σ e2 mem mem' MEM') in IHe2.
 
       bind_ret_l_with IHe2.
       destruct a' as (mem'', b0'); invc EH.
@@ -712,12 +777,8 @@ Section Eval_Denote_Equiv.
       rewrite interp_Mem_bind.
 
       symmetry in MEM'.
-      assert (T : eutt equiv (denoteAExpr σ e2) (denoteAExpr σ e2))
-        by reflexivity.
-      rewrite (interp_Mem_equiv_proper
-                 (denoteAExpr σ e2) (denoteAExpr σ e2) T
-                 mem mem' MEM') in IHe2.
-      clear T.
+      rewrite (interp_Mem_denoteAExpr_equiv_proper
+                 σ e2 mem mem' MEM') in IHe2.
 
       bind_ret_l_with IHe2.
       destruct a' as (mem'', b0'); invc EH.
@@ -742,12 +803,8 @@ Section Eval_Denote_Equiv.
       rewrite interp_Mem_bind.
 
       symmetry in MEM'.
-      assert (T : eutt equiv (denoteAExpr σ e2) (denoteAExpr σ e2))
-        by reflexivity.
-      rewrite (interp_Mem_equiv_proper
-                 (denoteAExpr σ e2) (denoteAExpr σ e2) T
-                 mem mem' MEM') in IHe2.
-      clear T.
+      rewrite (interp_Mem_denoteAExpr_equiv_proper
+                 σ e2 mem mem' MEM') in IHe2.
 
       bind_ret_l_with IHe2.
       destruct a' as (mem'', b0'); invc EH.
@@ -783,10 +840,10 @@ Section Eval_Denote_Equiv.
 
     symmetry in MEM'.
     remember (denoteDSHIMap n f σ m1 (mem_add n b0 m2)) as t.
-    assert (T : eutt equiv t t)
-      by reflexivity.
-    rewrite (interp_Mem_equiv_proper t t T mem mem' MEM') in H.
-    subst t; clear T.
+    subst t.
+    rewrite (interp_Mem_denoteDSHIMap_equiv_proper
+               n f σ m1 (mem_add n b0 m2) mem mem' MEM')
+      in H.
 
     rewrite H.
     reflexivity.
@@ -825,10 +882,9 @@ Section Eval_Denote_Equiv.
       clear.
       intros (mem1, v1) (mem2, v2) [M V].
       cbn in M, V.
-      eapply interp_Mem_equiv_proper.
-      2: assumption.
-      cbv in V; subst.
-      reflexivity.
+      repeat red in V; rewrite V.
+      eapply interp_Mem_denoteDSHBinOp_equiv_proper.
+      assumption.
     }
     rewrite Denote_Eval_Equiv_BinCType.
     reflexivity.
@@ -1202,6 +1258,14 @@ Section Eval_Denote_Equiv.
       lia.
   Qed.
 
+  Instance interp_Mem_denote_Loop_for_i_to_N_equiv_proper:
+    forall σ op i N,
+      Proper (equiv ==> eutt equiv)
+             (interp_Mem (denote_Loop_for_i_to_N σ op i N)).
+  Proof.
+    admit.
+  Admitted.
+
   Lemma Loop_is_Iter_aux:
     ∀ (op : DSHOperator)
       (IHop: ∀ (σ : evalContext) (mem' : memory) (fuel : nat) (mem : memory),
@@ -1294,11 +1358,10 @@ Section Eval_Denote_Equiv.
         
         symmetry in MEM_AUX'.
         remember (denote_Loop_for_i_to_N σ op (S i) (S N)) as t.
-        assert (T : eutt equiv t t)
-          by reflexivity.
-        rewrite (interp_Mem_equiv_proper t t T mem_aux mem_aux' MEM_AUX')
+        subst t.
+        rewrite (interp_Mem_denote_Loop_for_i_to_N_equiv_proper
+                   σ op (S i) (S N) mem_aux mem_aux' MEM_AUX')
           in Eval_tail.
-        subst t; clear T.
         assumption.
   Qed.
 
