@@ -560,35 +560,112 @@ Section Eval_Denote_Equiv.
       break_match.
   Qed.
 
+  Instance interp_Mem_denoteNExpr_equiv_proper:
+    forall σ n, Proper (equiv ==> eutt equiv)
+                       (interp_Mem (denoteNExpr σ n)).
+  Proof.
+    admit.
+  Admitted.
+
+  Instance interp_Mem_denoteMExpr_equiv_proper:
+    forall σ m, Proper (equiv ==> eutt equiv)
+                       (interp_Mem (denoteMExpr σ m)).
+  Proof.
+    admit.
+  Admitted.
+
   Instance interp_Mem_denoteAExpr_equiv_proper:
     forall σ f, Proper (equiv ==> eutt equiv)
                        (interp_Mem (denoteAExpr σ f)).
   Proof.
     intros σ f mem mem' EQM.
-    induction f.
-    - cbn.
+    induction f; cbn.
+    - rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { unfold lift_Serr.
+        break_match.
+        - apply interp_Mem_throw_equiv_proper; auto.
+        - destruct p; cbn.
+          apply interp_Mem_Ret_equiv_proper; auto.
+      }
+      clear; intros.
+      destruct u1 as [mem1 [v1 b1]].
+      destruct u2 as [mem2 [v2 b2]].
+      destruct H as [H1 [H2 H3]].
+      cbn in H1, H2, H3.
+      do 2 break_match.
+      all: try inv H2.
+      1, 3: apply interp_Mem_throw_equiv_proper; auto.
+      repeat red in H4; rewrite H4.
+      apply interp_Mem_Ret_equiv_proper; auto.
+    - apply interp_Mem_Ret_equiv_proper; auto.
+    - rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { apply interp_Mem_denoteNExpr_equiv_proper; auto. }
+      clear; intros.
+      destruct u1 as [mem1 i1].
+      destruct u2 as [mem2 i2].
+      destruct H as [EQmem EQi].
+      cbn in EQmem, EQi.
       rewrite 2 interp_Mem_bind.
       apply eutt_clo_bind with (UU := equiv).
-      + unfold lift_Serr.
+      { apply interp_Mem_denoteMExpr_equiv_proper; auto. }
+      clear - EQi; intros.
+      destruct u1 as [mem1 [mb1 j1]].
+      destruct u2 as [mem2 [mb2 j2]].
+      destruct H as [EQmem [EQmb EQj]].
+      cbn in EQmem, EQmb, EQj.
+      rewrite 2 interp_Mem_bind.
+      repeat red in EQi, EQj.
+      pose proof Int64.eq_spec i1 i2 as EQi'.
+      pose proof Int64.eq_spec j1 j2 as EQj'.
+      rewrite EQi in EQi'.
+      rewrite EQj in EQj'.
+      rewrite <- EQi', <- EQj'.
+      apply eutt_clo_bind with (UU := equiv).
+      { unfold lift_Derr.
         break_match.
-        * apply interp_Mem_throw_equiv_proper.
-          assumption.
-        * destruct p; cbn.
+        - apply interp_Mem_throw_equiv_proper; auto.
+        - apply interp_Mem_Ret_equiv_proper; auto.
+      }
+      clear - EQmb; intros.
+      destruct u1 as [mem1 ()].
+      destruct u2 as [mem2 ()].
+      destruct H as [H _]; cbn in H.
+      unfold lift_Derr.
+      do 2 break_match.
+      all: unfold mem_lookup_err, trywith, mem_lookup in Heqs, Heqs0.
+      all: do 2 break_match; try discriminate.
+      + rewrite Heqs0 in Heqs; inv Heqs.
+        apply interp_Mem_throw_equiv_proper; auto.
+      + specialize (EQmb (to_nat i1)).
+        repeat red in EQmb; inv EQmb.
+        * rewrite Heqo in H2; inv H2.
+        * rewrite Heqo0 in H0; inv H0.
+      + specialize (EQmb (to_nat i1)).
+        repeat red in EQmb; inv EQmb.
+        * rewrite Heqo0 in H1; inv H1.
+        * rewrite Heqo in H1; inv H1.
+      + inv Heqs; inv Heqs0.
+        specialize (EQmb (to_nat i1)).
+        repeat red in EQmb; inv EQmb.
+        * rewrite Heqo0 in H1; inv H1.
+        * repeat red in H2; rewrite H2 in H0; inv H2.
+          rewrite Heqo0 in H0; rewrite Heqo in H1.
+          inv H0; inv H1.
           apply interp_Mem_Ret_equiv_proper; auto.
-      + clear; intros.
-        destruct u1 as [mem1 [v1 b1]].
-        destruct u2 as [mem2 [v2 b2]].
-        destruct H as [H1 [H2 H3]].
-        cbn in H1, H2, H3.
-        do 2 break_match.
-        all: try inv H2.
-        1, 3: apply interp_Mem_throw_equiv_proper; auto.
-        repeat red in H4; rewrite H4.
-        apply interp_Mem_Ret_equiv_proper; auto.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
+    - rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv); auto.
+      clear; intros.
+      destruct u1 as [mem1 b1].
+      destruct u2 as [mem2 b2].
+      destruct H as [EQmem EQb].
+      cbn in EQmem, EQb.
+      repeat red in EQb; rewrite EQb.
+      apply interp_Mem_Ret_equiv_proper; auto.
+    - rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv); auto.
+      admit.
     - admit.
     - admit.
     - admit.
@@ -608,6 +685,14 @@ Section Eval_Denote_Equiv.
     forall n off f σ m1 m2,
       Proper (equiv ==> eutt equiv)
              (interp_Mem (denoteDSHBinOp n off f σ m1 m2)).
+  Proof.
+    admit.
+  Admitted.
+
+  Instance interp_Mem_denoteDSHOperator_equiv_proper:
+    forall σ op,
+      Proper (equiv ==> eutt equiv)
+             (interp_Mem (denoteDSHOperator σ op)).
   Proof.
     admit.
   Admitted.
@@ -1263,8 +1348,44 @@ Section Eval_Denote_Equiv.
       Proper (equiv ==> eutt equiv)
              (interp_Mem (denote_Loop_for_i_to_N σ op i N)).
   Proof.
-    admit.
-  Admitted.
+    intros σ op i N mem1 mem2 EQmem.
+    unfold denote_Loop_for_i_to_N.
+    eapply eutt_interp_state_iter; auto.
+    2: reflexivity.
+    clear; intros.
+    rewrite <- H0.
+    break_if.
+    - unfold ret, Monad_itree.
+      rewrite 2 interp_Mem_ret.
+      apply eqit_Ret.
+      split; auto.
+    - unfold bind, Monad_itree.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { unfold lift_Serr; break_match.
+        - apply interp_Mem_throw_equiv_proper; auto.
+        - apply interp_Mem_Ret_equiv_proper; auto.
+      }
+      clear; intros.
+      destruct u1 as [mem1 i1].
+      destruct u2 as [mem2 i2].
+      destruct H as [EQmem EQi].
+      cbn in EQmem, EQi.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { repeat red in EQi.
+        pose proof Int64.eq_spec i1 i2 as EQi'.
+        rewrite EQi in EQi'; rewrite EQi'.
+        apply interp_Mem_denoteDSHOperator_equiv_proper; auto.
+      }
+      clear; intros.
+      destruct u1 as [mem1 ()].
+      destruct u2 as [mem2 ()].
+      destruct H as [EQmem _]; cbn in EQmem.
+      rewrite 2 interp_Mem_ret.
+      apply eqit_Ret.
+      split; auto.
+  Qed.
 
   Lemma Loop_is_Iter_aux:
     ∀ (op : DSHOperator)
