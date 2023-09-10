@@ -560,19 +560,103 @@ Section Eval_Denote_Equiv.
       break_match.
   Qed.
 
+  Global Instance interp_Mem_lift_Serr_equiv_proper
+    {A} {e : Equiv A} {EQ : @Equivalence A e}: forall m,
+    Proper (equiv ==> eutt equiv) (@interp_Mem A (lift_Serr m)).
+  Proof.
+    repeat intro.
+    unfold lift_Serr.
+    break_match.
+    -
+      now apply interp_Mem_throw_equiv_proper.
+    -
+      now apply interp_Mem_Ret_equiv_proper.
+  Qed.
+
   Instance interp_Mem_denoteNExpr_equiv_proper:
     forall σ n, Proper (equiv ==> eutt equiv)
                        (interp_Mem (denoteNExpr σ n)).
   Proof.
-    admit.
-  Admitted.
+    induction n; cbn.
+    (* base cases *)
+    1,2: typeclasses eauto.
 
+    (* inductive cases *)
+    all: intros m1 m2 M.
+    all: rewrite !interp_Mem_bind.
+    all: apply eutt_clo_bind with (UU := equiv); auto.
+    all: intros [m1' v1] [m2' v2] [M' V]; cbn in *.
+    all: rewrite !interp_Mem_bind.
+    all: apply eutt_clo_bind with (UU := equiv); [now rewrite M' |].
+    all: intros [m1'' v1'] [m2'' v2'] [M'' V']; cbn in *.
+
+    1,2: repeat break_if;
+      [unfold Dfail; now apply interp_Mem_throw_equiv_proper
+      | clear - V' e n; contradict n; now rewrite <-V', e
+      | clear - V' e n; contradict n; now rewrite V', e
+      | ].
+
+   all: rewrite !interp_Mem_ret.
+   all: apply eutt_Ret.
+   all: split; [tauto | now rewrite V,  V'].
+  Qed.
+  
+  Instance interp_Mem_denotePExpr_equiv_proper:
+    forall σ p, Proper (equiv ==> eutt equiv)
+                       (interp_Mem (denotePExpr σ p)).
+  Proof.
+    typeclasses eauto.
+  Qed.
+  
   Instance interp_Mem_denoteMExpr_equiv_proper:
     forall σ m, Proper (equiv ==> eutt equiv)
                        (interp_Mem (denoteMExpr σ m)).
   Proof.
-    admit.
-  Admitted.
+    destruct m.
+    intros m1 m2 M; cbn.
+    -
+      cbn.
+      rewrite !interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv); auto.
+      now rewrite M.
+      intros [m1' [v1 sz1]] [m2' [v2 sz2]] [M' V]; cbn in *.
+      rewrite !interp_Mem_bind.
+      unfold interp_Mem.
+      rewrite !interp_state_trigger.
+      cbn.
+      inv V.
+      cbv in H; subst v2; rename v1 into v.
+      cbn in H0; rename H0 into SZ.
+      pose proof (M' v) as Mv.
+      unfold memory_lookup_err, memory_lookup, trywith.
+      repeat break_match;
+        try some_none; repeat some_inv;
+        try inl_inr; repeat inl_inr_inv;
+        subst.
+      +
+        cbn.
+        eapply eutt_clo_bind.
+        reflexivity.
+        intros * ?; subst.
+        break_let; subst.
+        autorewrite with itree.
+        apply eutt_Ret.
+        split; [| split]; cbn; auto.
+      +
+        cbn.
+        eapply eutt_clo_bind with (UU:=equiv).
+        apply eutt_Ret.
+        split; cbn; auto.
+        intros * U.
+        repeat break_let.
+        inv U; cbn in H, H0.
+        autorewrite with itree.
+        apply eutt_Ret.
+        repeat split; cbn; auto.
+    -
+      cbn.
+      typeclasses eauto.
+  Qed.
 
   Lemma interp_Mem_AExpr_op_equiv_proper:
     forall σ f1 f2 (op : binary64 -> binary64 -> binary64),
