@@ -343,6 +343,36 @@ Section Eval_Denote_Equiv.
       reflexivity.
   Qed.
 
+  Instance memory_next_key_equiv_eq_proper:
+    (Proper (equiv ==> eq)) memory_next_key.
+  Proof.
+    intros m1 m2 EQM.
+    unfold equiv, NM_Equiv in EQM.
+    apply memory_next_key_struct.
+    intro k; split; intro H.
+    all: specialize (EQM k).
+    all: apply memory_is_set_is_Some in H.
+    all: apply memory_is_set_is_Some.
+    all: unfold util.is_Some in *.
+    all: unfold memory_lookup in *.
+    all: do 2 break_match; auto || inv EQM.
+  Qed.
+
+  Instance mem_lookup_err_eq :
+    Proper (equiv ==> equiv ==> equiv ==> eq) mem_lookup_err.
+  Proof.
+    intros s1 s2 EQs k1 k2 EQk mb1 mb2 EQmb.
+    repeat red in EQs, EQk, EQmb.
+    apply eqb_eq in EQs.
+    subst s2 k2.
+    specialize (EQmb k1).
+    unfold mem_lookup_err, trywith, mem_lookup.
+    do 2 break_match.
+    all: inv EQmb; try discriminate.
+    - repeat red in H1; rewrite H1; auto.
+    - reflexivity.
+  Qed.
+
   Instance interp_Mem_Ret_equiv_proper
     {A} {e : Equiv A} {EQ : @Equivalence A e}: forall a,
     Proper (equiv ==> eutt equiv) (@interp_Mem A (Ret a)).
@@ -371,23 +401,23 @@ Section Eval_Denote_Equiv.
       break_match.
   Qed.
 
-  Instance interp_Mem_lift_Serr_equiv_proper
-    {A} {e : Equiv A} {EQ : @Equivalence A e}: forall m,
-    Proper (equiv ==> eutt equiv) (@interp_Mem A (lift_Serr m)).
+  Instance interp_Mem_lift_Derr_equiv_proper
+    {A} {e : Equiv A} {EQ : @Equivalence A e}: forall err,
+    Proper (equiv ==> eutt equiv) (@interp_Mem A (lift_Derr err)).
   Proof.
     repeat intro.
-    unfold lift_Serr.
+    unfold lift_Derr.
     break_match.
     - now apply interp_Mem_throw_equiv_proper.
     - now apply interp_Mem_Ret_equiv_proper.
   Qed.
 
-  Instance interp_Mem_lift_Derr_equiv_proper
-    {A} {e : Equiv A} {EQ : @Equivalence A e}: forall m,
-    Proper (equiv ==> eutt equiv) (@interp_Mem A (lift_Derr m)).
+  Instance interp_Mem_lift_Serr_equiv_proper
+    {A} {e : Equiv A} {EQ : @Equivalence A e}: forall err,
+    Proper (equiv ==> eutt equiv) (@interp_Mem A (lift_Serr err)).
   Proof.
     repeat intro.
-    unfold lift_Derr.
+    unfold lift_Serr.
     break_match.
     - now apply interp_Mem_throw_equiv_proper.
     - now apply interp_Mem_Ret_equiv_proper.
@@ -512,7 +542,7 @@ Section Eval_Denote_Equiv.
     cbn in EQmem, EQb'.
     repeat red in EQb, EQb'.
     rewrite EQb, EQb'.
-    apply interp_Mem_Ret_equiv_proper; auto.
+    now apply interp_Mem_Ret_equiv_proper.
   Qed.
 
   Instance interp_Mem_denoteAExpr_equiv_proper:
@@ -522,12 +552,7 @@ Section Eval_Denote_Equiv.
     intros σ f; induction f; intros mem1 mem2 EQmem; cbn.
     - rewrite 2 interp_Mem_bind.
       apply eutt_clo_bind with (UU := equiv).
-      { unfold lift_Serr.
-        break_match.
-        - apply interp_Mem_throw_equiv_proper; auto.
-        - destruct p; cbn.
-          apply interp_Mem_Ret_equiv_proper; auto.
-      }
+      { apply interp_Mem_lift_Derr_equiv_proper; auto. }
       clear.
       intros [mem1 [v1 b1]] [mem2 [v2 b2]] [EQmem [EQv EQb]].
       cbn in EQmem, EQv, EQb.
@@ -556,34 +581,10 @@ Section Eval_Denote_Equiv.
       rewrite EQj in EQj'.
       rewrite <- EQi', <- EQj'.
       apply eutt_clo_bind with (UU := equiv).
-      { unfold lift_Derr.
-        break_match.
-        - apply interp_Mem_throw_equiv_proper; auto.
-        - apply interp_Mem_Ret_equiv_proper; auto.
-      }
+      { apply interp_Mem_lift_Derr_equiv_proper; auto. }
       clear - EQmb; intros [mem1 ()] [mem2 ()] [H _]; cbn in H.
-      unfold lift_Derr.
-      do 2 break_match.
-      all: unfold mem_lookup_err, trywith, mem_lookup in Heqs, Heqs0.
-      all: do 2 break_match; try discriminate.
-      + rewrite Heqs0 in Heqs; inv Heqs.
-        apply interp_Mem_throw_equiv_proper; auto.
-      + specialize (EQmb (to_nat i1)).
-        repeat red in EQmb; inv EQmb.
-        * rewrite Heqo in H2; inv H2.
-        * rewrite Heqo0 in H0; inv H0.
-      + specialize (EQmb (to_nat i1)).
-        repeat red in EQmb; inv EQmb.
-        * rewrite Heqo0 in H1; inv H1.
-        * rewrite Heqo in H1; inv H1.
-      + inv Heqs; inv Heqs0.
-        specialize (EQmb (to_nat i1)).
-        repeat red in EQmb; inv EQmb.
-        * rewrite Heqo0 in H1; inv H1.
-        * repeat red in H2; rewrite H2 in H0; inv H2.
-          rewrite Heqo0 in H0; rewrite Heqo in H1.
-          inv H0; inv H1.
-          apply interp_Mem_Ret_equiv_proper; auto.
+      rewrite EQmb.
+      apply interp_Mem_lift_Derr_equiv_proper; auto.
     - rewrite 2 interp_Mem_bind.
       apply eutt_clo_bind with (UU := equiv); auto.
       clear; intros [mem1 b1] [mem2 b2] [EQmem EQb].
@@ -631,6 +632,42 @@ Section Eval_Denote_Equiv.
                now apply interp_Mem_lift_Derr_equiv_proper |
                now rewrite M]. (* this rewrite can take a while, try [apply] above to speed up *)
 
+  Instance interp_Mem_denoteDSHIMap_equiv_proper':
+    forall n f σ,
+      Proper (equiv ==> equiv ==> equiv ==> eutt equiv)
+             (fun mbx mby => 
+                interp_Mem (denoteDSHIMap n f σ mbx mby)).
+  Proof.
+    admit.
+  Admitted.
+
+  Instance interp_Mem_denoteDSHBinOp_equiv_proper':
+    forall n off f σ,
+      Proper (equiv ==> equiv ==> equiv ==> eutt equiv)
+             (fun mbx mby =>
+                interp_Mem (denoteDSHBinOp n off f σ mbx mby)).
+  Proof.
+    admit.
+  Admitted.
+
+  Instance interp_Mem_denoteDSHMap2_equiv_proper':
+    forall n f σ,
+      Proper (equiv ==> equiv ==> equiv ==> equiv ==> eutt equiv)
+             (fun mbx0 mbx1 mby =>
+                interp_Mem (denoteDSHMap2 n f σ mbx0 mbx1 mby)).
+  Proof.
+    admit.
+  Admitted.
+
+  Instance interp_Mem_denoteDSHPower_equiv_proper':
+    forall n f σ xoff yoff,
+      Proper (equiv ==> equiv ==> equiv ==> eutt equiv)
+             (fun mbx mby =>
+                interp_Mem (denoteDSHPower σ n f mbx mby xoff yoff)).
+  Proof.
+    admit.
+  Admitted.
+
   Instance interp_Mem_denoteDSHIMap_equiv_proper:
     forall n f σ mbx mby,
       Proper (equiv ==> eutt equiv)
@@ -670,14 +707,553 @@ Section Eval_Denote_Equiv.
     - typeclasses eauto.
     - repeat proper_go.
   Qed.
-    
+
+  Instance interp_Mem_trigger_MemLU_equiv_proper:
+    forall n s,
+      Proper (equiv ==> eutt equiv)
+             (interp_Mem (trigger (MemLU s n))).
+  Proof.
+    intros n s mem1 mem2 EQmem.
+    unfold trigger.
+    rewrite 2 interp_Mem_vis_eqit with (e := inl1 (MemLU s n)).
+    apply eutt_clo_bind with (UU := equiv).
+    { cbn; do 2 break_match.
+      all: unfold memory_lookup_err, trywith in Heqs0, Heqs1.
+      all: do 2 break_match; try discriminate.
+      all: unfold memory_lookup in Heqo, Heqo0.
+      - rewrite Heqs1 in Heqs0; inv Heqs0.
+        reflexivity.
+      - repeat red in EQmem; specialize EQmem with n; inv EQmem.
+        + rewrite Heqo in H; inv H.
+        + rewrite Heqo0 in H; inv H.
+      - repeat red in EQmem; specialize EQmem with n; inv EQmem.
+        + rewrite Heqo0 in H0; inv H0.
+        + rewrite Heqo in H0; inv H0.
+      - cbn.
+        apply eqit_Ret.
+        inv Heqs0; inv Heqs1.
+        split; cbn; auto.
+        repeat red in EQmem; specialize EQmem with n; inv EQmem.
+        + rewrite Heqo in H; inv H.
+        + rewrite Heqo0 in H; inv H.
+          rewrite Heqo in H0; inv H0.
+          assumption.
+    }
+    clear; intros [mem1 mb1] [mem2 mb2] [EQmem EQmb].
+    cbn in EQmem, EQmb; cbn.
+    apply tau_eutt_RR_l; auto.
+    apply tau_eutt_RR_r; auto.
+    rewrite 2 interp_Mem_ret.
+    apply eqit_Ret.
+    split; cbn; auto.
+  Qed.
+
   Instance interp_Mem_denoteDSHOperator_equiv_proper:
     forall σ op,
       Proper (equiv ==> eutt equiv)
              (interp_Mem (denoteDSHOperator σ op)).
   Proof.
-    admit.
-  Admitted.
+    intros σ op; generalize σ; clear.
+    induction op; intros σ mem1 mem2 EQmem.
+    - apply interp_Mem_Ret_equiv_proper; auto.
+    - cbn.
+      destruct src; destruct dst.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denotePExpr_equiv_proper. }
+
+      clear.
+      intros [mem1 [xi1 xs1]] [mem2 [xi2 xs2]] [EQmem [EQxi EQxs]].
+      cbn in EQmem, EQxi, EQxs.
+      rewrite <- EQxi.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denotePExpr_equiv_proper. }
+
+      clear.
+      intros [mem1 [yi1 ys1]] [mem2 [yi2 ys2]] [EQmem [EQyi EQys]].
+      cbn in EQmem, EQyi, EQys.
+      apply int64_equiv_eq in EQys.
+      rewrite <- EQyi, <- EQys.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_trigger_MemLU_equiv_proper. }
+
+      clear; intros [mem1 mb1] [mem2 mb2] [EQmem EQmbx].
+      cbn in EQmem, EQmbx.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_trigger_MemLU_equiv_proper. }
+
+      clear - EQmbx.
+      intros [mem1 mby1] [mem2 mby2] [EQmem EQmby].
+      cbn in EQmem, EQmby.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denoteNExpr_equiv_proper. }
+
+      clear - EQmbx EQmby.
+      intros [mem1 src1] [mem2 src2] [EQmem EQsrc].
+      cbn in EQmem, EQsrc.
+      apply int64_equiv_eq in EQsrc; rewrite <- EQsrc.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denoteNExpr_equiv_proper. }
+
+      clear - EQmbx EQmby.
+      intros [mem1 dst1] [mem2 dst2] [EQmem EQdst].
+      cbn in EQmem, EQdst.
+      apply int64_equiv_eq in EQdst; rewrite <- EQdst.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_lift_Derr_equiv_proper. }
+
+      clear - EQmbx EQmby.
+      intros [mem1 ()] [mem2 ()] [EQmem _]; cbn in EQmem.
+      rewrite <- EQmbx.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_lift_Derr_equiv_proper. }
+
+      clear - EQmby; intros [mem1 b1] [mem2 b2] [EQmem EQb].
+      cbn in EQmem, EQb.
+      unfold trigger, interp_Mem.
+      rewrite 2 interp_state_vis.
+      apply eutt_clo_bind with (UU := equiv); cbn.
+      { apply eqit_Ret.
+        split; cbn; auto.
+        rewrite EQmem, EQmby, EQb.
+        reflexivity.
+      }
+
+      clear; intros [mem1 ()] [mem2 ()] [EQmem _]; cbn in EQmem.
+      rewrite tau_eutt_RR_l; auto.
+      rewrite tau_eutt_RR_r; auto.
+      now apply interp_Mem_Ret_equiv_proper.
+
+    - cbn.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denotePExpr_equiv_proper. }
+
+      clear.
+      intros [mem1 [xi1 xs1]] [mem2 [xi2 xs2]] [EQmem [EQxi EQxs]].
+      cbn in EQmem, EQxi, EQxs.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denotePExpr_equiv_proper. }
+
+      clear - EQxi.
+      intros [mem1 [yi1 ys1]] [mem2 [yi2 ys2]] [EQmem [EQyi EQys]].
+      cbn in EQmem, EQyi, EQys.
+      rewrite 2 interp_Mem_bind.
+      repeat red in EQxi, EQyi.
+      rewrite <- EQxi, <- EQyi.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_lift_Serr_equiv_proper. }
+
+      clear - EQys.
+      intros [mem1 ()] [mem2 ()] [EQmem _]; cbn in EQmem.
+      rewrite 2 interp_Mem_bind.
+      apply int64_equiv_eq in EQys; rewrite <- EQys.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_lift_Derr_equiv_proper. }
+
+      clear; intros [mem1 ()] [mem2 ()] [EQmem _].
+      cbn in EQmem.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_trigger_MemLU_equiv_proper. }
+
+      clear; intros [mem1 mbx1] [mem2 mbx2] [EQmem EQmbx].
+      cbn in EQmem, EQmbx.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_trigger_MemLU_equiv_proper. }
+
+      clear - EQmbx; intros [mem1 mby1] [mem2 mby2] [EQmem EQmby].
+      cbn in EQmem, EQmby.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denoteDSHIMap_equiv_proper'. }
+
+      clear; intros [mem1 mby1] [mem2 mby2] [EQmem EQmby].
+      cbn in EQmem, EQmby.
+      unfold trigger, interp_Mem.
+      rewrite 2 interp_state_vis.
+      apply eutt_clo_bind with (UU := equiv).
+      { cbn.
+        apply eqit_Ret.
+        split; cbn; auto.
+        rewrite EQmem, EQmby.
+        reflexivity.
+      }
+
+      clear.
+      intros [mem1 ()] [mem2 ()] [EQmem _]; cbn in EQmem.
+      rewrite tau_eutt_RR_l; auto.
+      rewrite tau_eutt_RR_r; auto.
+      now apply interp_Mem_Ret_equiv_proper.
+
+    - cbn.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denotePExpr_equiv_proper. }
+
+      clear.
+      intros [mem1 [xi1 xs1]] [mem2 [xi2 xs2]] [EQmem [EQxi EQxs]].
+      cbn in EQmem, EQxi, EQxs.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denotePExpr_equiv_proper. }
+
+      clear - EQxi.
+      intros [mem1 [yi1 ys1]] [mem2 [yi2 ys2]] [EQmem [EQyi EQys]].
+      cbn in EQmem, EQyi, EQys.
+      rewrite 2 interp_Mem_bind.
+      repeat red in EQxi, EQyi.
+      rewrite <- EQxi, EQyi.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_lift_Serr_equiv_proper. }
+
+      clear - EQys.
+      intros [mem1 ()] [mem2 ()] [EQmem _]; cbn in EQmem.
+      rewrite 2 interp_Mem_bind.
+      apply int64_equiv_eq in EQys; rewrite <- EQys.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_lift_Derr_equiv_proper. }
+
+      clear; intros [mem1 ()] [mem2 ()] [EQmem _].
+      cbn in EQmem.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_trigger_MemLU_equiv_proper. }
+
+      clear; intros [mem1 mbx1] [mem2 mbx2] [EQmem EQmbx].
+      cbn in EQmem, EQmbx.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_trigger_MemLU_equiv_proper. }
+
+      clear - EQmbx; intros [mem1 mby1] [mem2 mby2] [EQmem EQmby].
+      cbn in EQmem, EQmby.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denoteDSHBinOp_equiv_proper'. }
+
+      clear; intros [mem1 mby1] [mem2 mby2] [EQmem EQmby].
+      cbn in EQmem, EQmby.
+      unfold trigger, interp_Mem.
+      rewrite 2 interp_state_vis.
+      apply eutt_clo_bind with (UU := equiv).
+      { cbn.
+        apply eqit_Ret.
+        split; cbn; auto.
+        rewrite EQmem, EQmby.
+        reflexivity.
+      }
+
+      clear.
+      intros [mem1 ()] [mem2 ()] [EQmem _]; cbn in EQmem.
+      rewrite tau_eutt_RR_l; auto.
+      rewrite tau_eutt_RR_r; auto.
+      now apply interp_Mem_Ret_equiv_proper.
+
+    - cbn.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denotePExpr_equiv_proper. }
+
+      clear.
+      intros [mem1 [x0i1 xs1]] [mem2 [x0i2 xs2]] [EQmem [EQx0i EQx0s]].
+      cbn in EQmem, EQx0i, EQx0s.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denotePExpr_equiv_proper. }
+
+      clear - EQx0i.
+      intros [mem1 [x1i1 xs1]] [mem2 [x1i2 xs2]] [EQmem [EQx1i EQx1s]].
+      cbn in EQmem, EQx1i, EQx1s.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denotePExpr_equiv_proper. }
+
+      clear - EQx0i EQx1i.
+      intros [mem1 [yi1 ys1]] [mem2 [yi2 ys2]] [EQmem [EQyi EQys]].
+      cbn in EQmem, EQyi, EQys.
+      rewrite 2 interp_Mem_bind.
+      repeat red in EQx0i, EQx1i, EQyi.
+      rewrite <- EQx0i, <- EQx1i, <- EQyi.
+      apply int64_equiv_eq in EQys; rewrite <- EQys.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_lift_Derr_equiv_proper. }
+
+      clear; intros [mem1 ()] [mem2 ()] [EQmem _].
+      cbn in EQmem.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_trigger_MemLU_equiv_proper. }
+
+      clear; intros [mem1 mbx01] [mem2 mbx02] [EQmem EQmbx0].
+      cbn in EQmem, EQmbx0.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_trigger_MemLU_equiv_proper. }
+
+      clear - EQmbx0; intros [mem1 mbx11] [mem2 mbx12] [EQmem EQmbx1].
+      cbn in EQmem, EQmbx1.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_trigger_MemLU_equiv_proper. }
+
+      clear - EQmbx0 EQmbx1; intros [mem1 mby1] [mem2 mby2] [EQmem EQmby].
+      cbn in EQmem, EQmby.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denoteDSHMap2_equiv_proper'. }
+
+      clear; intros [mem1 mby1] [mem2 mby2] [EQmem EQmby].
+      cbn in EQmem, EQmby.
+      unfold trigger, interp_Mem.
+      rewrite 2 interp_state_vis.
+      apply eutt_clo_bind with (UU := equiv).
+      { cbn.
+        apply eqit_Ret.
+        split; cbn; auto.
+        rewrite EQmem, EQmby.
+        reflexivity.
+      }
+
+      clear.
+      intros [mem1 ()] [mem2 ()] [EQmem _]; cbn in EQmem.
+      rewrite tau_eutt_RR_l; auto.
+      rewrite tau_eutt_RR_r; auto.
+      now apply interp_Mem_Ret_equiv_proper.
+
+    - cbn.
+      destruct src; destruct dst.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denotePExpr_equiv_proper. }
+
+      clear.
+      intros [mem1 [xi1 xs1]] [mem2 [xi2 xs2]] [EQmem [EQxi EQxs]].
+      cbn in EQmem, EQxi, EQxs.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denotePExpr_equiv_proper. }
+
+      clear - EQxi.
+      intros [mem1 [yi1 ys1]] [mem2 [yi2 ys2]] [EQmem [EQyi EQys]].
+      cbn in EQmem, EQyi, EQys.
+      rewrite 2 interp_Mem_bind.
+      repeat red in EQxi, EQyi.
+      rewrite <- EQxi, <- EQyi.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_lift_Serr_equiv_proper. }
+
+      clear - EQys; intros [mem1 ()] [mem2 ()] [EQmem _].
+      cbn in EQmem.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_trigger_MemLU_equiv_proper. }
+
+      clear - EQys; intros [mem1 mbx1] [mem2 mbx2] [EQmem EQmbx].
+      cbn in EQmem, EQmbx.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_trigger_MemLU_equiv_proper. }
+
+      clear - EQys EQmbx; intros [mem1 mby1] [mem2 mby2] [EQmem EQmby].
+      cbn in EQmem, EQmby.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denoteNExpr_equiv_proper. }
+
+      clear - EQys EQmbx EQmby.
+      intros [mem1 i1] [mem2 i2] [EQmem EQi].
+      cbn in EQmem, EQi.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denoteNExpr_equiv_proper. }
+
+      clear - EQi EQys EQmbx EQmby.
+      intros [mem1 xo1] [mem2 xo2] [EQmem EQxo].
+      cbn in EQmem, EQxo.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denoteNExpr_equiv_proper. }
+
+      clear - EQi EQxo EQys EQmbx EQmby.
+      intros [mem1 yo1] [mem2 yo2] [EQmem EQyo].
+      cbn in EQmem, EQyo.
+      apply int64_equiv_eq in EQi, EQys, EQxo, EQyo.
+      rewrite <- EQi, <- EQys, <- EQxo, <- EQyo.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_lift_Derr_equiv_proper. }
+
+      clear - EQmbx EQmby; intros [mem1 ()] [mem2 ()] [EQmem _].
+      cbn in EQmem.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { apply interp_Mem_denoteDSHPower_equiv_proper'; auto.
+        now rewrite EQmby. }
+
+      clear; intros [mem1 mby1] [mem2 mby2] [EQmem EQmby].
+      cbn in EQmem, EQmby.
+      unfold trigger, interp_Mem.
+      rewrite 2 interp_state_vis.
+      apply eutt_clo_bind with (UU := equiv).
+      { cbn.
+        apply eqit_Ret.
+        split; cbn; auto.
+        rewrite EQmem, EQmby.
+        reflexivity.
+      }
+
+      clear.
+      intros [mem1 ()] [mem2 ()] [EQmem _]; cbn in EQmem.
+      rewrite tau_eutt_RR_l; auto.
+      rewrite tau_eutt_RR_r; auto.
+      now apply interp_Mem_Ret_equiv_proper.
+
+    - cbn.
+      apply eutt_interp_state_iter with (RA := eq); auto.
+      clear - IHop; intros ca1 ca2 mem1 mem2 EQmem EQca.
+      rewrite <- EQca.
+      destruct (ca1 =? n).
+      + rewrite 2 interp_Mem_ret.
+        apply eqit_Ret.
+        split; auto.
+      + rewrite 2 interp_Mem_bind.
+        apply eutt_clo_bind with (UU := equiv).
+        { now apply interp_Mem_lift_Serr_equiv_proper. }
+
+        clear - IHop; intros [mem1 i1] [mem2 i2] [EQmem EQi].
+        cbn in EQmem, EQi.
+        rewrite 2 interp_Mem_bind.
+        pose proof Int64.eq_spec i1 i2 as EQi'.
+        rewrite EQi in EQi'; rewrite <- EQi'.
+        apply eutt_clo_bind with (UU := equiv).
+        { now apply IHop. }
+
+        clear; intros [mem1 ()] [mem2 ()] [EQmem ()].
+        cbn in EQmem.
+        rewrite 2 interp_Mem_ret.
+        apply eqit_Ret.
+        split; auto.
+
+    - cbn.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { unfold trigger, interp_Mem.
+        rewrite 2 interp_state_vis.
+        apply eutt_clo_bind with (UU := equiv).
+        { cbn.
+          apply eqit_Ret.
+          split; cbn; auto.
+          rewrite EQmem; auto.
+        }
+        clear; intros [mem1 n1] [mem2 n2] [EQmem EQn].
+        cbn in EQmem, EQn.
+        repeat red in EQn; rewrite <- EQn.
+        rewrite tau_eutt_RR_l; auto.
+        rewrite tau_eutt_RR_r; auto.
+        now apply interp_Mem_Ret_equiv_proper.
+      }
+
+      clear - IHop; intros [mem1 n1] [mem2 n2] [EQmem EQn].
+      cbn in EQmem, EQn.
+      repeat red in EQn; rewrite <- EQn.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { unfold trigger, interp_Mem.
+        rewrite 2 interp_state_vis.
+        apply eutt_clo_bind with (UU := equiv).
+        { cbn.
+          apply eqit_Ret.
+          split; cbn; auto.
+          rewrite EQmem; auto.
+        }
+        clear; intros [mem1 ()] [mem2 ()] [EQmem _].
+        cbn in EQmem.
+        rewrite tau_eutt_RR_l; auto.
+        rewrite tau_eutt_RR_r; auto.
+        now apply interp_Mem_Ret_equiv_proper.
+      }
+
+      clear - IHop; intros [mem1 ()] [mem2 ()] [EQmem _].
+      cbn in EQmem.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply IHop. }
+      clear; intros [mem1 ()] [mem2 ()] [EQmem _].
+      cbn in EQmem.
+      unfold trigger, interp_Mem.
+      rewrite 2 interp_state_vis.
+      apply eutt_clo_bind with (UU := equiv).
+      { cbn.
+        apply eqit_Ret.
+        split; cbn; auto.
+        rewrite EQmem; auto.
+      }
+
+      clear; intros [mem1 ()] [mem2 ()] [EQmem _].
+      cbn in EQmem.
+      rewrite tau_eutt_RR_l; auto.
+      rewrite tau_eutt_RR_r; auto.
+      now apply interp_Mem_Ret_equiv_proper.
+
+    - cbn.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_denotePExpr_equiv_proper. }
+
+      clear.
+      intros [mem1 [yi1 ys1]] [mem2 [yi2 ys2]] [EQmem [EQyi EQys]].
+      cbn in EQmem, EQyi, EQys.
+      repeat red in EQyi; rewrite <- EQyi.
+      apply int64_equiv_eq in EQys; rewrite <- EQys.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := equiv).
+      { now apply interp_Mem_trigger_MemLU_equiv_proper. }
+
+      clear; intros [mem1 mb1] [mem2 mb2] [EQmem EQmb].
+      cbn in EQmem, EQmb.
+      unfold trigger, interp_Mem.
+      rewrite 2 interp_state_vis.
+      apply eutt_clo_bind with (UU := equiv).
+      { cbn.
+        apply eqit_Ret.
+        split; cbn; auto.
+        rewrite EQmb, EQmem; auto.
+      }
+
+      clear; intros [mem1 ()] [mem2 ()] [EQmem _].
+      cbn in EQmem.
+      rewrite tau_eutt_RR_l; auto.
+      rewrite tau_eutt_RR_r; auto.
+      now apply interp_Mem_Ret_equiv_proper.
+
+    - cbn.
+      rewrite 2 interp_Mem_bind.
+      apply eutt_clo_bind with (UU := fun u1 u2 => equiv u1 u2 /\
+        eutt equiv (interp_Mem (denoteDSHOperator σ op2) (fst u1))
+                   (interp_Mem (denoteDSHOperator σ op2) (fst u2))).
+      { eapply eutt_equiv.
+        2: apply IHop1; auto.
+        split.
+        - intros u1 u2 [EQ EUTT]; auto.
+        - clear - IHop2; split; auto.
+          destruct x as [mem1 ()].
+          destruct y as [mem2 ()].
+          destruct H as [EQmem _]; cbn in EQmem.
+          apply IHop2; cbn; auto.
+      }
+      clear; intros [mem1 ()] [mem2 ()] [[EQmem _] EUTT].
+      cbn in EQmem, EUTT; apply EUTT.
+  Qed.
 
   Lemma Denote_Eval_Equiv_NExpr: forall mem σ e v,
       evalNExpr σ e ≡ inr v ->
@@ -1344,19 +1920,13 @@ Section Eval_Denote_Equiv.
     - unfold bind, Monad_itree.
       rewrite 2 interp_Mem_bind.
       apply eutt_clo_bind with (UU := equiv).
-      { unfold lift_Serr; break_match.
-        - apply interp_Mem_throw_equiv_proper; auto.
-        - apply interp_Mem_Ret_equiv_proper; auto.
-      }
+      { now apply interp_Mem_lift_Serr_equiv_proper. }
       clear; intros [mem1 i1] [mem2 i2] [EQmem EQi].
       cbn in EQmem, EQi.
       rewrite 2 interp_Mem_bind.
       apply eutt_clo_bind with (UU := equiv).
-      { repeat red in EQi.
-        pose proof Int64.eq_spec i1 i2 as EQi'.
-        rewrite EQi in EQi'; rewrite EQi'.
-        apply interp_Mem_denoteDSHOperator_equiv_proper; auto.
-      }
+      { apply int64_equiv_eq in EQi; rewrite EQi.
+        now apply interp_Mem_denoteDSHOperator_equiv_proper. }
       clear; intros [mem1 ()] [mem2 ()] [EQmem _]; cbn in EQmem.
       rewrite 2 interp_Mem_ret.
       apply eqit_Ret.
