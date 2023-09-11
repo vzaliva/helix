@@ -388,11 +388,113 @@ Section Eval_Denote_Equiv.
     - reflexivity.
   Qed.
 
+  Lemma find_elements_equiv :
+    forall mb1 mb2, mb1 = mb2 -> forall k,
+    SetoidList.findA (Memory.NP.F.eqb k)
+      (Memory.NM.elements (elt:=binary64) mb1) =
+    SetoidList.findA (Memory.NP.F.eqb k)
+      (Memory.NM.elements (elt:=binary64) mb2).
+  Proof.
+    intros mb1 mb2 EQmb k.
+    unfold equiv, NM_Equiv in EQmb.
+    specialize (EQmb k).
+    rewrite 2 Memory.NP.F.elements_o in EQmb.
+    apply EQmb.
+  Qed.
+
+  Lemma nat_eqb_refl (k : nat): Memory.NP.F.eqb k k = true.
+  Proof.
+    unfold Memory.NP.F.eqb.
+    unfold OrderedTypeEx.Nat_as_OT.eq_dec.
+    rewrite NatUtil.eq_nat_dec_refl.
+    reflexivity.
+  Qed.
+
   Instance string_of_mem_block_keys_equiv_eq_proper:
     (Proper (equiv ==> eq) string_of_mem_block_keys).
   Proof.
-    admit.
-  Admitted.
+    intros mb1 mb2 EQmb.
+    unfold string_of_mem_block_keys.
+    unfold mem_keys_lst.
+    do 4 f_equal.
+    pose proof (find_elements_equiv mb1 mb2 EQmb) as FE.
+    pose proof (Memory.NM.elements_3 mb1) as Smb1.
+    pose proof (Memory.NM.elements_3 mb2) as Smb2.
+    pose proof (Memory.NM.elements_3w mb1) as NDmb1.
+    pose proof (Memory.NM.elements_3w mb2) as NDmb2.
+    generalize (Memory.NM.elements mb1)
+               (Memory.NM.elements mb2)
+               Smb1 Smb2 NDmb1 NDmb2 FE; clear.
+    intros l1 l2 Sl1 Sl2 NDl1 NDl2 EQl.
+    generalize l2 Sl2 NDl2 EQl; clear - Sl1 NDl1.
+    induction Sl1; intros l2 Sl2 NDl2 EQl.
+    { destruct l2; auto.
+      destruct p.
+      specialize (EQl k).
+      cbn in EQl.
+      rewrite nat_eqb_refl in EQl.
+      inv EQl.
+    }
+    destruct l2.
+    { destruct a.
+      specialize (EQl k).
+      cbn in EQl.
+      rewrite nat_eqb_refl in EQl.
+      inv EQl.
+    }
+    inv NDl1; inv NDl2; inv Sl2.
+    destruct a; destruct p; cbn.
+    destruct (Nat.eq_dec k0 k) eqn:Ek0.
+    - subst k0.
+      f_equal.
+      apply IHSl1; auto.
+      intros.
+      destruct (Nat.eq_dec k0 k) eqn:Ek.
+      + subst k0.
+        destruct (SetoidList.findA (Memory.NP.F.eqb k) l) eqn:E1.
+        2: destruct (SetoidList.findA (Memory.NP.F.eqb k) l2) eqn:E2.
+        * eapply SetoidList.findA_NoDupA in H3; eauto.
+          apply H3 in E1.
+          exfalso; apply H2.
+          eapply Memory.NP.InA_eqke_eqk; eauto.
+        * eapply SetoidList.findA_NoDupA in H5; eauto.
+          apply H5 in E2.
+          exfalso; apply H4.
+          eapply Memory.NP.InA_eqke_eqk; eauto.
+        * reflexivity.
+      + specialize (EQl k0).
+        cbn in EQl.
+        unfold Memory.NP.F.eqb in EQl.
+        unfold OrderedTypeEx.Nat_as_OT.eq_dec in EQl.
+        now rewrite Ek in EQl.
+    - specialize (EQl k) as EQlk.
+      specialize (EQl k0) as EQlk0.
+      cbn in EQlk, EQlk0.
+      rewrite nat_eqb_refl in EQlk, EQlk0.
+      unfold Memory.NP.F.eqb in EQlk, EQlk0.
+      unfold OrderedTypeEx.Nat_as_OT.eq_dec in EQlk, EQlk0.
+      rewrite Ek0 in EQlk0.
+      destruct (Nat.eq_dec k k0) eqn:EQk0'; [exfalso; auto |].
+      clear n0 EQk0'.
+      inv EQlk; inv EQlk0.
+      repeat red in H8, H10; subst b b0.
+      symmetry in H0, H1.
+      eapply SetoidList.findA_NoDupA in H0, H1; eauto.
+      enough (Memory.NM.lt_key (k0, a) (k, b1) /\
+              Memory.NM.lt_key (k, b1) (k0, a))
+        as [E1 E2] by (inv E1; inv E2; lia).
+      split.
+      + eapply SetoidList.SortA_InfA_InA.
+        6: eapply Memory.NP.InA_eqke_eqk; [reflexivity | eapply H1].
+        all: eauto.
+        * apply Memory.NM.Raw.Proofs.PX.ltk_strorder.
+        * apply Memory.NM.Raw.Proofs.PX.ltk_compat.
+      + eapply SetoidList.SortA_InfA_InA.
+        6: eapply Memory.NP.InA_eqke_eqk; [reflexivity | eapply H0].
+        all: eauto.
+        * apply Memory.NM.Raw.Proofs.PX.ltk_strorder.
+        * apply Memory.NM.Raw.Proofs.PX.ltk_compat.
+  Qed.
 
   Instance interp_Mem_Ret_equiv_proper
     {A} {e : Equiv A} {EQ : @Equivalence A e}: forall a,
