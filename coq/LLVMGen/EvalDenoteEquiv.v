@@ -560,17 +560,26 @@ Section Eval_Denote_Equiv.
       break_match.
   Qed.
 
-  Global Instance interp_Mem_lift_Serr_equiv_proper
+  Instance interp_Mem_lift_Serr_equiv_proper
     {A} {e : Equiv A} {EQ : @Equivalence A e}: forall m,
     Proper (equiv ==> eutt equiv) (@interp_Mem A (lift_Serr m)).
   Proof.
     repeat intro.
     unfold lift_Serr.
     break_match.
-    -
-      now apply interp_Mem_throw_equiv_proper.
-    -
-      now apply interp_Mem_Ret_equiv_proper.
+    - now apply interp_Mem_throw_equiv_proper.
+    - now apply interp_Mem_Ret_equiv_proper.
+  Qed.
+
+  Instance interp_Mem_lift_Derr_equiv_proper
+    {A} {e : Equiv A} {EQ : @Equivalence A e}: forall m,
+    Proper (equiv ==> eutt equiv) (@interp_Mem A (lift_Derr m)).
+  Proof.
+    repeat intro.
+    unfold lift_Derr.
+    break_match.
+    - now apply interp_Mem_throw_equiv_proper.
+    - now apply interp_Mem_Ret_equiv_proper.
   Qed.
 
   Instance interp_Mem_denoteNExpr_equiv_proper:
@@ -778,22 +787,79 @@ Section Eval_Denote_Equiv.
     - apply interp_Mem_AExpr_op_equiv_proper; auto.
   Qed.
 
-  Instance interp_Mem_denoteDSHIMap_equiv_proper:
-    forall n f σ m1 m2,
-      Proper (equiv ==> eutt equiv)
-             (interp_Mem (denoteDSHIMap n f σ m1 m2)).
+  Lemma b64_equiv_eq :
+    forall b1 b2 : binary64, b1 = b2 -> b1 ≡ b2.
   Proof.
-    admit.
-  Admitted.
+    tauto.
+  Qed.
+
+  Lemma int64_equiv_eq :
+    forall b b' : Int64.int, b = b' -> b ≡ b'.
+  Proof.
+    intros * B.
+    pose proof Int64.eq_spec b b'.
+    invc B.
+    now find_rewrite.
+  Qed.
+
+  (* All [denote<Operator>] functions have the same structure.
+     This tactic makes use of it, and just descends "into" the binds,
+     while eagerly rewriting all new equal/equivalent parts of intermediate states *)
+  Ltac proper_go :=
+    let m1 := fresh "m1" in
+    let m2 := fresh "m2" in
+    let M := fresh "M" in
+    let v := fresh "v" in
+    let v' := fresh "v'" in
+    let V := fresh "V" in
+    first [intros (m1, v) (m2, v') [M V]; cbn in M, V | intros m1 m2 M; cbn in M];
+    try (first [apply b64_equiv_eq in V | apply int64_equiv_eq in V]; subst v');
+    try (rewrite !interp_Mem_bind; eapply eutt_clo_bind with (UU:=equiv));
+    unfold denoteIUnCType, denoteIBinCType;
+    try first [now apply interp_Mem_lift_Serr_equiv_proper |
+               now apply interp_Mem_lift_Derr_equiv_proper |
+               now rewrite M]. (* this rewrite can take a while, try [apply] above to speed up *)
+
+  Instance interp_Mem_denoteDSHIMap_equiv_proper:
+    forall n f σ mbx mby,
+      Proper (equiv ==> eutt equiv)
+             (interp_Mem (denoteDSHIMap n f σ mbx mby)).
+  Proof.
+    induction n; intros; cbn.
+    - typeclasses eauto.
+    - repeat proper_go.
+  Qed.
 
   Instance interp_Mem_denoteDSHBinOp_equiv_proper:
-    forall n off f σ m1 m2,
+    forall n off f σ mbx mby,
       Proper (equiv ==> eutt equiv)
-             (interp_Mem (denoteDSHBinOp n off f σ m1 m2)).
+             (interp_Mem (denoteDSHBinOp n off f σ mbx mby)).
   Proof.
-    admit.
-  Admitted.
+    induction n; intros; cbn.
+    - typeclasses eauto.
+    - repeat proper_go.
+  Qed.
 
+  Instance interp_Mem_denoteDSHMap2_equiv_proper:
+    forall n f σ mbx0 mbx1 mby,
+      Proper (equiv ==> eutt equiv)
+             (interp_Mem (denoteDSHMap2 n f σ mbx0 mbx1 mby)).
+  Proof.
+    induction n; intros; cbn.
+    - typeclasses eauto.
+    - repeat proper_go.
+  Qed.
+
+  Instance interp_Mem_denoteDSHPower_equiv_proper:
+    forall n f σ mbx mby xoff yoff,
+      Proper (equiv ==> eutt equiv)
+             (interp_Mem (denoteDSHPower σ n f mbx mby xoff yoff)).
+  Proof.
+    induction n; intros; cbn.
+    - typeclasses eauto.
+    - repeat proper_go.
+  Qed.
+    
   Instance interp_Mem_denoteDSHOperator_equiv_proper:
     forall σ op,
       Proper (equiv ==> eutt equiv)
