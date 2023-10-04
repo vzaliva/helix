@@ -3,85 +3,49 @@ kind: pipeline
 type: docker
 name: default
 
-# Note: DRONE_ variables are subject to substitution by Drone before execution
-# (see [https://docs.drone.io/pipeline/environment/substitution])
-steps:
-  # Cache will be (re)built if:
-  # 1) the build was triggered by a cron job, or was promoted
-  #    (web interface: top right "..." -> "Promote")
-  # 2) no image is found with the tag expected for this repo+branch
-  # 3) cache definition files have changed since the last build
-  #    (filenames hardcoded below)
-  - name: rebuild-cache
-    image: docker:git
-    volumes:
-      - name: dockersock
-        path: /var/run/docker.sock
-    commands:
-      - |
-          if [ '${DRONE_BUILD_EVENT}' = cron ]                                 \
-             || [ '${DRONE_BUILD_EVENT}' = promote ]                           \
-             || [ -z "$(docker image ls --quiet                                \
-                        'cache--${DRONE_REPO_NAME}:${DRONE_SOURCE_BRANCH}')" ] \
-             || ! git diff --quiet --exit-code                                 \
-                  ${DRONE_COMMIT_BEFORE}..${DRONE_COMMIT_AFTER}                \
-                  Dockerfile helix.opam ;                                      \
-          then                                                                 \
-                  docker build --no-cache -t                                   \
-                    'cache--${DRONE_REPO_NAME}:${DRONE_SOURCE_BRANCH}' . ;     \
-          fi
+volumes:
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
 
+steps:
   - name: submodules
     image: alpine/git
     commands:
       - git submodule update --init --recursive
 
+  - name: rebuild-cache
+    image: zoickx/drone-helper
+    commands:
+      - drone-helper cache --deps="Dockerfile helix.opam"
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+
   - name: build-vellvm
-    image: cache--${DRONE_REPO_NAME}:${DRONE_SOURCE_BRANCH}
+    image: cache--${DRONE_REPO}:${DRONE_COMMIT_AFTER}
     pull: never
     commands:
       - opam exec -- make -j 1 vellvm
 
   - name: compile-helix
-    image: cache--${DRONE_REPO_NAME}:${DRONE_SOURCE_BRANCH}
+    image: cache--${DRONE_REPO}:${DRONE_COMMIT_AFTER}
     pull: never
     commands:
       - opam exec -- make
 
   - name: test-helix
-    image: cache--${DRONE_REPO_NAME}:${DRONE_SOURCE_BRANCH}
+    image: cache--${DRONE_REPO}:${DRONE_COMMIT_AFTER}
     pull: never
     commands:
       - opam exec -- make test
 
-  # notifications are split into success/failure
-  # to avoid spamming the channel with cron successes
-  - name: notify-discord-success
-    image: appleboy/drone-discord
+  - name: notify
+    image: zoickx/drone-helper
+    commands:
+      - drone-helper notify --discord
     settings:
-      webhook_id:
+      discord_webhook_token:
+        from_secret: discord_webhook_token 
+      discord_webhook_id:
         from_secret: discord_webhook_id
-      webhook_token:
-        from_secret: discord_webhook_token
-    when:
-      status:
-        - success
-      event:
-        exclude:
-          - cron
-
-  - name: notify-discord-failure
-    image: appleboy/drone-discord
-    settings:
-      webhook_id:
-        from_secret: discord_webhook_id
-      webhook_token:
-        from_secret: discord_webhook_token
-    when:
-      status:
-        - failure
-
-volumes:
-  - name: dockersock
-    host:
-      path: /var/run/docker.sock
