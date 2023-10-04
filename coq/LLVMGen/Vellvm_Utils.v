@@ -313,15 +313,43 @@ Qed.
    - the resulting memory still contains all initially allocated addresses
    - the [free_frame] operation itself only deallocates, it does not change
    the content of what remains.
-   
+
    TODO: before proving, generalize over arbitrary trees rather than specifically
    denotations of ocfgs.
  *)
-Lemma memory_scoping : forall ocfg b g ρ m,
+Lemma memory_scoping_cfg : forall ocfg b g ρ m,
     interp_cfg3 (⟦ ocfg ⟧bs b) g ρ (push_fresh_frame m)
-      ⤳ (fun '(m',_) => exists m'', free_frame m' = inr m'' /\
-                              (forall a, allocated a m -> allocated a m'') /\
-                              (forall a τ v, read m'' a τ = inr v -> read m' a τ = inr v)).
+      ⤳ (fun '(m',_) => exists m'',
+             free_frame m' = inr m'' /\
+               (forall a, allocated a m -> allocated a m'') /\
+               (forall a τ v, read m'' a τ = inr v -> read m' a τ = inr v)).
+Admitted.
+
+#[local] Definition mcfg_ctx fundefs :
+  forall T : Type,
+    CallE T
+    -> itree (CallE +' ExternalCallE +' IntrinsicE +' LLVMGEnvE +' (LLVMEnvE +' LLVMStackE) +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) T :=
+
+  (fun (T : Type) (call : CallE T) =>
+    match call in (CallE T0) return (itree (CallE +' ExternalCallE +' IntrinsicE +' LLVMGEnvE +' (LLVMEnvE +' LLVMStackE) +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) T0) with
+    | LLVMEvents.Call dt0 fv args0 =>
+        dfv <- concretize_or_pick fv True;;
+        match lookup_defn dfv fundefs with
+        | Some f_den => f_den args0
+        | None =>
+            dargs <- map_monad (fun uv : uvalue => pickUnique uv) args0;;
+            Functor.fmap dvalue_to_uvalue (trigger (ExternalCall dt0 fv dargs))
+        end
+    end).
+
+Lemma memory_scoping_mcfg : forall ocfg b g ρ m ctx,
+    interp_mcfg3 (interp_mrec (mcfg_ctx ctx) (translate instr_to_L0' (⟦ ocfg ⟧bs b))) g ρ (push_fresh_frame m)
+      ⤳ (fun '(m',(ρ',_)) =>
+           exists (m'' : memory_stack),
+             snd ρ' = snd ρ /\
+               free_frame m' = inr m'' /\
+               (forall a, allocated a m -> allocated a m'') /\
+               (forall a τ v, read m'' a τ = inr v -> read m' a τ = inr v)).
 Admitted.
 
 Lemma has_post_enrich_eutt {E X Y RR Q1 Q2} :
@@ -330,7 +358,14 @@ Lemma has_post_enrich_eutt {E X Y RR Q1 Q2} :
     t ⤳ Q1 ->
     u ⤳ Q2 ->
     eutt (fun x y => RR x y /\ Q1 x /\ Q2 y) t u.
-Admitted.
+Proof.
+  intros.
+  rewrite <- bind_ret_r.
+  pose proof bind_ret_r u as EQ; rewrite <- EQ; clear EQ.
+  eapply eutt_post_bind_gen; eauto.
+  intros.
+  apply eutt_Ret; intuition.
+Qed.
 
 (* Auxilliary lemma to enrich an equation with an invariant over the right computation *)
 Lemma has_post_enrich_eutt_r {E X Y RR Q} :
@@ -338,7 +373,32 @@ Lemma has_post_enrich_eutt_r {E X Y RR Q} :
     eutt RR t u ->
     u ⤳ Q ->
     eutt (fun x y => RR x y /\ Q y) t u.
-Admitted.
+Proof.
+  intros.
+  rewrite <- bind_ret_r.
+  pose proof bind_ret_r u as EQ; rewrite <- EQ; clear EQ.
+  eapply eutt_post_bind_gen; eauto.
+  apply has_post_True.
+  intros.
+  apply eutt_Ret; intuition.
+Qed.
+
+(* Auxilliary lemma to enrich an equation with an invariant over the left computation *)
+Lemma has_post_enrich_eutt_l {E X Y RR Q} :
+  forall (t : itree E X) (u : itree E Y),
+    eutt RR t u ->
+    t ⤳ Q ->
+    eutt (fun x y => RR x y /\ Q x) t u.
+Proof.
+  intros.
+  rewrite <- bind_ret_r.
+  pose proof bind_ret_r u as EQ; rewrite <- EQ; clear EQ.
+  eapply eutt_post_bind_gen; eauto.
+  apply has_post_True.
+  intros.
+  apply eutt_Ret; intuition.
+Qed.
+
 
 (** * [interp_local_stack] theory *)
 Lemma interp_local_stack_tau:
@@ -525,23 +585,6 @@ Proof.
 Qed.
 
 (** * [interp_mrec] theory *)
-
-#[local] Definition mcfg_ctx fundefs :
-  forall T : Type,
-    CallE T
-    -> itree (CallE +' ExternalCallE +' IntrinsicE +' LLVMGEnvE +' (LLVMEnvE +' LLVMStackE) +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) T :=
-
-  (fun (T : Type) (call : CallE T) =>
-    match call in (CallE T0) return (itree (CallE +' ExternalCallE +' IntrinsicE +' LLVMGEnvE +' (LLVMEnvE +' LLVMStackE) +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) T0) with
-    | LLVMEvents.Call dt0 fv args0 =>
-        dfv <- concretize_or_pick fv True;;
-        match lookup_defn dfv fundefs with
-        | Some f_den => f_den args0
-        | None =>
-            dargs <- map_monad (fun uv : uvalue => pickUnique uv) args0;;
-            Functor.fmap dvalue_to_uvalue (trigger (ExternalCall dt0 fv dargs))
-        end
-    end).
 
 Lemma denote_mcfg_unfold_in : forall G τ addr args f,
     lookup_defn (DVALUE_Addr addr) G = Some f ->
@@ -1107,7 +1150,7 @@ Fixpoint tick {E R} (n : nat) (t : itree E R) : itree E R :=
   | S n => Tau (tick n t)
   end.
 
-Fixpoint tickp {E R} (n : nat) (r : R) : itree E R :=
+Definition tickp {E R} (n : nat) (r : R) : itree E R :=
    tick n (Ret r).
 
 Definition handler3_strong : L0 ~> stateT global_env (stateT lenv (stateT memoryV (itree E))) :=
@@ -2008,4 +2051,3 @@ Proof.
   rewrite EQ', tickp_tick.
   reflexivity.
 Qed.
-

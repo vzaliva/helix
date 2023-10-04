@@ -1201,8 +1201,8 @@ Qed.
 (*   := (ℑs3 (mrecursive ctx _ t) g l m) *)
 (*        (only printing, at level 0, *)
 (*        format "'with'  'ℑs3'  'and'  'context'  ctx  'computing' '//' t '//' 'from' '//' g '//' l '//' m '//'"). *)
-  
-Lemma get_array_cell_signleton 
+
+Lemma get_array_cell_signleton
   (mem : μ) (addr : Addr.addr) (i : nat) (y : uvalue) (b64 : DynamicValues.ll_double) :
   get_array_cell mem addr i DTYPE_Double ≡ inr (UVALUE_Double b64) →
   get_array_cell mem addr i (DTYPE_Array (Npos 1) DTYPE_Double) ≡ inr y ->
@@ -1472,7 +1472,7 @@ Proof.
   set (left_computation' :=
          ℑs3 (interp_mrec (Vellvm_Utils.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr))
                 (Ti (⟦ MAINCFG ⟧bs (Name "main_block", Name "main_block")) >>=
-                      catch_and_pop))
+                   catch_and_pop))
            gI
            ([], ρI :: sI)
            (push_fresh_frame memI)).
@@ -1546,6 +1546,44 @@ Proof.
   }
   setoid_rewrite H1; clear H1; clear left_computation.
 
+
+  set (left_computation_tmp :=
+         ℑs3 (interp_mrec (Vellvm_Utils.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr))
+                (Ti (⟦ MAINCFG ⟧bs (Name "main_block", Name "main_block"))))
+           gI
+           ([], ρI :: sI)
+           (push_fresh_frame memI)
+           >>=
+           (fun '(x,(y,(z,v))) =>
+              ℑs3 (interp_mrec (Vellvm_Utils.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr)) (catch_and_pop v)) z y x)).
+
+  assert (left_computation' ≈ left_computation_tmp).
+  {
+    subst left_computation'.
+    cbn.
+    rewrite interp_mrec_bind, interp3_bind.
+    reflexivity.
+  }
+  setoid_rewrite H1; clear H1; clear left_computation'; rename left_computation_tmp into left_computation'.
+
+  subst left_computation'.
+
+  set (left_computation' := ℑs3 (interp_mrec (Vellvm_Utils.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr))
+               (Ti (⟦ MAINCFG ⟧bs (Name "main_block", Name "main_block"))))
+          gI
+          ([], ρI :: sI)
+          (push_fresh_frame memI)).
+
+  assert (
+      ∃ (g : alist raw_id dvalue) (l : alist raw_id uvalue * stack) (m : μ) r,
+        left_computation' ≈ Ret3 g l m r
+        /\ match r with
+          | inl _ => False
+          | inr r => final_rel_val y r
+          end
+    ).
+  {
+
   Infix ">>=" := (ITree.bind).
   Notation "f >>> g" := (fun x => f x >>= g) (at level 10).
   Notation "'M' E X" := (itree E X) (at level 0).
@@ -1572,7 +1610,7 @@ Proof.
                     (translate exp_to_instr (denote_terminator (TERM_Ret
                                                                   (DTYPE_Array (Npos 1) DTYPE_Double,
                                                                     (EXP_Ident (ID_Local (Name "z"))))))))
-                   >>= cont_ocfg' >>> catch_and_pop)
+                   >>= cont_ocfg')
            )
            gI
            ([(Name "X0", UVALUE_Addr a0_addr) ; (Name "Y1", UVALUE_Addr a1_addr)], [] :: ρI :: sI)
@@ -1582,9 +1620,7 @@ Proof.
 
   {
     subst left_computation'.
-    cbn.
-    rewrite interp_mrec_bind.
-    rewrite interp3_bind.
+
     cbn.
     hide.
     onAllHyps move_up_types.
@@ -1604,7 +1640,7 @@ Proof.
     rewrite denote_code_cons.
     rewrite bind_bind,translate_bind.
     rewrite interp_mrec_bind, interp3_bind.
-    rewrite bind_bind.
+    (* rewrite bind_bind. *)
     cbn.
     focus_single_step_l.
 
@@ -1665,17 +1701,22 @@ Proof.
     cbn.
     rewrite bind_bind.
 
-    Notation "'with' 'ℑs3' 'and' 'context' ctx 'computing' t 'from' g l m"
-      := (ℑs3 (interp_mrec ctx t) g l m)
-           (only printing, at level 0,
-             format "'with'  'ℑs3'  'and'  'context'  ctx  'computing' '//' '//' t '//' '//' 'from' '//' g '//' l '//' m '//'").
+    (* Notation "'with' 'ℑs3' 'and' 'context' ctx 'computing' t 'from' g l m" *)
+    (*   := (ℑs3 (interp_mrec ctx t) g l m) *)
+    (*        (only printing, at level 0, *)
+    (*          format "'with'  'ℑs3'  'and'  'context'  ctx  'computing' '//' '//' t '//' '//' 'from' '//' g '//' l '//' m '//'"). *)
 
     unfold left_computation.
-    cbn; rewrite ? interp_mrec_bind, ?interp3_bind, ?bind_bind.
+    match goal with
+      |- ?t ≈ _ => remember t end.
+    cbn. rewrite interp_mrec_bind, interp3_bind.
+    cbn. setoid_rewrite interp_mrec_bind.
+    rewrite interp3_bind, bind_bind.
+    subst.
     apply eutt_eq_bind.
     intros (? & ? & ? & ?).
     cbn.
-    unfold catch_and_pop at 2, cont_ocfg; cbn.
+    unfold catch_and_pop, cont_ocfg; cbn.
     destruct s.
     {
       setoid_rewrite interp_mrec_bind; setoid_rewrite interp3_bind.
@@ -1704,9 +1745,6 @@ Proof.
     eapply eutt_eq_bind.
     intros (? & ? & ? & ?).
     symmetry; rewrite ?translate_bind, ?interp_mrec_bind, ?interp3_bind, ?bind_bind.
-    symmetry.
-    apply eutt_eq_bind.
-    intros (? & ? & ? & ?).
     reflexivity.
   }
   setoid_rewrite H1; clear H1; clear left_computation'.
@@ -1821,7 +1859,7 @@ Proof.
   | eutt _ _ (interp_cfg3 (denote_ocfg ?ocfg ?b) ?g ?ρ (push_fresh_frame ?m)) =>
       let H := fresh in
       let H' := fresh in
-      pose proof memory_scoping ocfg b g ρ m as H;
+      pose proof memory_scoping_cfg ocfg b g ρ m as H;
       pose proof has_post_enrich_eutt_r _ _ RES H as H';
       clear H RES; rename H' into RES
   end.
@@ -1849,7 +1887,7 @@ Proof.
                                                     None);;
                                               (translate exp_to_instr (denote_terminator (TERM_Ret
                                                                                             (DTYPE_Array (Npos 1) DTYPE_Double,
-                                                                                              (EXP_Ident (ID_Local (Name "z")))))))) >>= cont_ocfg' >>> catch_and_pop
+                                                                                              (EXP_Ident (ID_Local (Name "z")))))))) >>= cont_ocfg'
                 )
            )
            g2
@@ -1879,29 +1917,6 @@ Proof.
     rewrite translate_bind,interp_mrec_bind.
     rewrite interp3_bind, bind_bind.
     subst; focus_single_step_l.
-
-    (* replace bk with b in * by now invc Heqs0. *)
-    (* clear Heqs0. *)
-
-    (* eapply interp_mem_interp_helix_ret in EQ. *)
-    (* eapply eutt_ret_inv_strong' in EQ. *)
-    (* destruct EQ as ([? |] & EQ & TMP); inv TMP. *)
-    (* rewrite EQ in RES. *)
-    (* clear EQ. *)
-
-    (* match type of RES with *)
-    (* | eutt _ _ (interp_cfg3 (denote_ocfg ?ocfg ?b) ?g ?ρ (push_fresh_frame ?m)) => *)
-    (*     let H := fresh in *)
-    (*     let H' := fresh in *)
-    (*     pose proof memory_scoping ocfg b g ρ m as H; *)
-    (*     pose proof has_post_enrich_eutt_r _ _ RES H as H'; *)
-    (*     clear H RES; rename H' into RES *)
-    (* end. *)
-
-    (* destruct p as [? []]. *)
-    (* inv H3; cbn in H1; clear H2. *)
-    (* edestruct @eutt_ret_inv_strong as (RESLLVM2 & EQLLVM2 & INV2); [apply RES | clear RES]. *)
-    (* destruct RESLLVM2 as (mem2 & ρ2 & g2 & v2). *)
 
     subst ρI''.
     match goal with
@@ -1996,15 +2011,10 @@ Proof.
     reflexivity.
   Qed.
 
-  set (left_computation :=
-         ℑs3 (interp_mrec (Vellvm_Utils.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr))
-                (catch_and_pop (inr y_ival)))
-           gI
-           (Maps.add (Name "z") y_ival [], ρI :: sI)
-           mem2').
-
-  assert (left_computation' ≈ left_computation).
+  exists gI, (Maps.add (Name "z") y_ival [], ρI :: sI), mem2', (inr y_ival).
+  split.
   {
+
     subst left_computation'.
     unfold calling_pop.
     cbn; rewrite ?interp_mrec_bind, ?interp3_bind.
@@ -2054,182 +2064,198 @@ Proof.
     eapply Maps.mapsto_lookup. apply Maps.mapsto_add_eq.
     rewrite bind_ret_l; subst i.
     unfold cont_ocfg'.
-    rewrite translate_ret, bind_ret_l.
-    reflexivity.
-  }
-  setoid_rewrite H2; clear H2; clear left_computation'.
-
-  (* TOFIX *)
-  destruct mem2' as [mem2' fs].
-  assert (exists f, fs ≡ Mem.Snoc (Mem.Singleton f) nil) as [f ?] by admit.
-
-  set (final_computation := Ret3 gI (ρI, sI) (free_frame_memory [] mem2', Mem.Singleton f) y_ival : itree E_mcfg _).
-
-  assert (left_computation ≈ final_computation).
-  {
-    unfold left_computation.
-    unfold catch_and_pop, cont_ocfg.
-    cbn; rewrite i3_bind.
     rewrite translate_ret, interp_mrec_ret, interp3_ret.
-    rewrite bind_ret_l.
-    unfold calling_pop.
-    cbn; rewrite i3_bind.
-    rewrite interp3_StackPop.
-    rewrite bind_ret_l.
-    rewrite i3_bind.
-    rewrite interp_mrec_trigger.
-    pose proof interp_mcfg3_trigger_is_handler3 unit (subevent _ MemPop) gI (ρI , sI) (mem2',fs) as EQ; cbn in EQ.
-    rewrite EQ; clear EQ.
-    rewrite H2.
-    cbn.
-    rewrite ? bind_ret_l.
-    rewrite interp_mrec_ret, interp3_ret.
     reflexivity.
   }
-  setoid_rewrite H3; clear H3; clear left_computation.
 
-  unfold final_computation.
-  exists gI, (ρI, sI), (free_frame_memory [] mem2', Mem.Singleton f), y_ival.
-  split; [reflexivity |].
-
-  (** * zoickx checkpoint *)
-
-  apply READ_INV in YIV.
-  destruct INV3 as [RHO2 _]; cbn in RHO2.
-  clear - INV2 H1 LUF TRF HgenIR H TRR YIV RHO2.
-  destruct INV2 as [MINV _ _ _ _ _ _].
-  specialize (MINV 1).
-  specialize (MINV (FHCOL.DSHPtrVal 1 dynwin_o') false).
-  specialize (MINV (TYPE_Pointer (TYPE_Array (Npos xH) TYPE_Double)) (ID_Local "Y1")).
-
-  
-  apply Context.genIR_Γ in HgenIR; rewrite <-HgenIR in *.
-  cbn in MINV.
-  do 2 (autospecialize MINV; [reflexivity |]).
-  
-  destruct MINV as (ptry & t & TE & TF & PTRY & MY).
-  invc TE.
-  replace ptry with a1_addr in *.
-  2: {
-    clear - RHO2 PTRY.
-    eapply local_scope_preserve_modif in RHO2.
-    unfold local_scope_preserved in RHO2.
-    specialize (RHO2 "Y1").
-    autospecialize RHO2.
-    {
-      Require Import LidBound.
-      eapply lid_bound_between_shrink_up.
-      instantiate (1:= {|
-                        block_count := 1;
-                        local_count := 2;
-                        void_count := 0;
-                        Γ :=
-                          [(ID_Global "a", TYPE_Pointer (TYPE_Array (Npos 3) double));
-                           (ID_Local "Y1", TYPE_Pointer (TYPE_Array (Npos 1) double))]
-                      |}).
-      cbv; lia.
-      
-      eapply lid_bound_between_incLocalNamed.
-      instantiate (1:="Y"); reflexivity.
-      instantiate (1:= {|
-                        block_count := 1;
-                        local_count := 1;
-                        void_count := 0;
-                        Γ :=
-                          [(ID_Global "a", TYPE_Pointer (TYPE_Array (Npos 3) double));
-                           (ID_Local "Y1", TYPE_Pointer (TYPE_Array (Npos 1) double))]
-                      |}).
-      cbv.
-      reflexivity.
-    }
-    subst ρI''.
-    rewrite alist_find_neq in RHO2 by discriminate.
-    rewrite alist_find_add_eq in RHO2 by reflexivity.
-    cbv [local_id] in *.
-    rewrite PTRY in RHO2.
-    now invc RHO2.
-  }
-  
-  autospecialize MY; [reflexivity |].
-  destruct MY as (y_rmem'' & FMY & IMY).
-  replace dynwin_y_addr with 1 in * by reflexivity.
-  
-  (* lost instance *)
-  (* could not find where this is supposed to be imported from *)
-  assert (equiv_Equivalence : forall {A : Type} {EA : Equiv A},
-             Equivalence EA -> Equivalence (@equiv A EA))
-    by now cbv.
-  rewrite <-H1 in LUF.
-  rewrite FMY in LUF.
-  some_inv.
-  
-  specialize (TRR dynwin_y_offset).
-  unshelve erewrite MSigmaHCOL.MHCOL.mem_lookup_ctvector_to_mem_block in TRR.
-  constructor.
-  unfold final_rel_val, HCOLImpl.Scalarize.
-  rewrite VecUtil.Vhead_nth.
-  
-  (* poor man's generalize dependent *)
-  remember (@VecUtil.Vnth (@CarrierA RasCarrierA.CarrierDefs_R) 
-              (S O) y O (Nat.lt_0_succ O)) as yr.
-  replace (@VecUtil.Vnth (@CarrierA RasCarrierA.CarrierDefs_R) dynwin_o y
-             dynwin_y_offset (le_n dynwin_o))
-    with yr
-    in *
-      by (subst yr; f_equal; apply proof_irrelevance).
-  clear Heqyr.
-  
-  inv TRF.
   {
-    exfalso.
-    clear - H2 TRR.
+
+    apply READ_INV in YIV.
+    destruct INV3 as [RHO2 _]; cbn in RHO2.
+    clear - INV2 H1 LUF TRF HgenIR H TRR YIV RHO2.
+    destruct INV2 as [MINV _ _ _ _ _ _].
+    specialize (MINV 1).
+    specialize (MINV (FHCOL.DSHPtrVal 1 dynwin_o') false).
+    specialize (MINV (TYPE_Pointer (TYPE_Array (Npos xH) TYPE_Double)) (ID_Local "Y1")).
+
+    apply Context.genIR_Γ in HgenIR; rewrite <-HgenIR in *.
+    cbn in MINV.
+    do 2 (autospecialize MINV; [reflexivity |]).
+
+    destruct MINV as (ptry & t & TE & TF & PTRY & MY).
+    invc TE.
+    replace ptry with a1_addr in *.
+    2: {
+      clear - RHO2 PTRY.
+      eapply local_scope_preserve_modif in RHO2.
+      unfold local_scope_preserved in RHO2.
+      specialize (RHO2 "Y1").
+      autospecialize RHO2.
+      {
+        Require Import LidBound.
+        eapply lid_bound_between_shrink_up.
+        instantiate (1:= {|
+                          block_count := 1;
+                          local_count := 2;
+                          void_count := 0;
+                          Γ :=
+                            [(ID_Global "a", TYPE_Pointer (TYPE_Array (Npos 3) double));
+                             (ID_Local "Y1", TYPE_Pointer (TYPE_Array (Npos 1) double))]
+                        |}).
+        cbv; lia.
+
+        eapply lid_bound_between_incLocalNamed.
+        instantiate (1:="Y"); reflexivity.
+        instantiate (1:= {|
+                          block_count := 1;
+                          local_count := 1;
+                          void_count := 0;
+                          Γ :=
+                            [(ID_Global "a", TYPE_Pointer (TYPE_Array (Npos 3) double));
+                             (ID_Local "Y1", TYPE_Pointer (TYPE_Array (Npos 1) double))]
+                        |}).
+        cbv.
+        reflexivity.
+      }
+      subst ρI''.
+      rewrite alist_find_neq in RHO2 by discriminate.
+      rewrite alist_find_add_eq in RHO2 by reflexivity.
+      cbv [local_id] in *.
+      rewrite PTRY in RHO2.
+      now invc RHO2.
+    }
+
+    autospecialize MY; [reflexivity |].
+    destruct MY as (y_rmem'' & FMY & IMY).
+    replace dynwin_y_addr with 1 in * by reflexivity.
+
+    (* lost instance *)
+    (* could not find where this is supposed to be imported from *)
+    assert (equiv_Equivalence : forall {A : Type} {EA : Equiv A},
+               Equivalence EA -> Equivalence (@equiv A EA))
+      by now cbv.
+    rewrite <-H1 in LUF.
+    rewrite FMY in LUF.
+    some_inv.
+
+    specialize (TRR dynwin_y_offset).
+    unshelve erewrite MSigmaHCOL.MHCOL.mem_lookup_ctvector_to_mem_block in TRR.
+    constructor.
+    unfold final_rel_val, HCOLImpl.Scalarize.
+    rewrite VecUtil.Vhead_nth.
+
+    (* poor man's generalize dependent *)
+    remember (@VecUtil.Vnth (@CarrierA RasCarrierA.CarrierDefs_R)
+                (S O) y O (Nat.lt_0_succ O)) as yr.
+    replace (@VecUtil.Vnth (@CarrierA RasCarrierA.CarrierDefs_R) dynwin_o y
+               dynwin_y_offset (le_n dynwin_o))
+      with yr
+      in *
+        by (subst yr; f_equal; apply proof_irrelevance).
+    clear Heqyr.
+
+    inv TRF.
+    {
+      exfalso.
+      clear - H2 TRR.
+      unfold RHCOLEval.mem_lookup in *.
+      rewrite <-H2 in TRR.
+      some_none.
+    }
+
     unfold RHCOLEval.mem_lookup in *.
-    rewrite <-H2 in TRR.
-    some_none.
+    rewrite <-H0 in TRR.
+    some_inv.
+    symmetry in TRR; invc TRR.
+
+    rename b0 into yf.
+
+    specialize (IMY Int64.zero yf).
+    replace (MInt64asNT.to_nat Int64.zero) with 0%nat in * by reflexivity.
+    cbv [dynwin_y_offset] in *.
+    specialize (LUF 0).
+    unfold FHCOLITree.mem_lookup, mem_lookup in IMY, H2.
+    inv LUF; [congruence |].
+    cbv in H6.
+    assert (b0 ≡ yf) by congruence.
+    subst a0 b0.
+    rewrite <-H4 in IMY.
+
+    autospecialize IMY; [reflexivity |].
+    rewrite typ_to_dtyp_D_array in *.
+
+    erewrite read_array in YIV.
+    2: eapply can_read_allocated; eassumption.
+    2: {
+      instantiate (1:=(MInt64asNT.to_nat Int64.zero)).
+      instantiate (1:=Npos 1).
+      cbn.
+      replace (Z.of_nat (MInt64asNT.to_nat Int64.zero)) with 0%Z by reflexivity.
+      clear.
+      destruct a1_addr as [a off].
+      unfold handle_gep_addr.
+      cbn.
+      replace (DynamicValues.Int64.unsigned (DynamicValues.Int64.repr 0))
+        with 0%Z
+        by reflexivity.
+      repeat f_equal.
+      lia.
+    }
+
+    assert (y_ival ≡ UVALUE_Array [UVALUE_Double yf])
+      by (eapply get_array_cell_signleton; eassumption).
+
+    subst.
+    now exists yf.
+
   }
-  
-  unfold RHCOLEval.mem_lookup in *.
-  rewrite <-H0 in TRR.
-  some_inv.
-  symmetry in TRR; invc TRR.
-  
-  rename b0 into yf.
-  
-  specialize (IMY Int64.zero yf).
-  replace (MInt64asNT.to_nat Int64.zero) with 0%nat in * by reflexivity.
-  cbv [dynwin_y_offset] in *.
-  specialize (LUF 0).
-  unfold FHCOLITree.mem_lookup, mem_lookup in IMY, H2.
-  inv LUF; [congruence |].
-  cbv in H6.
-  assert (b0 ≡ yf) by congruence.
-  subst a0 b0.
-  rewrite <-H4 in IMY.
-
-  autospecialize IMY; [reflexivity |].
-  rewrite typ_to_dtyp_D_array in *.
-
-  erewrite read_array in YIV.
-  2: eapply can_read_allocated; eassumption.
-  2: {
-    instantiate (1:=(MInt64asNT.to_nat Int64.zero)).
-    instantiate (1:=Npos 1).
-    cbn.
-    replace (Z.of_nat (MInt64asNT.to_nat Int64.zero)) with 0%Z by reflexivity.
-    clear.
-    destruct a1_addr as [a off].
-    unfold handle_gep_addr.
-    cbn.
-    replace (DynamicValues.Int64.unsigned (DynamicValues.Int64.repr 0))
-      with 0%Z
-      by reflexivity.
-    repeat f_equal.
-    lia.
   }
 
-  assert (y_ival ≡ UVALUE_Array [UVALUE_Double yf])
-    by (eapply get_array_cell_signleton; eassumption).
+  destruct H1 as (gf & lf & mf & [|rf] & EQ1 & POST); [destruct POST |].
 
-  subst.
-  now exists yf.
-Admitted.
+  subst left_computation'.
+  symmetry in EQ1.
+
+
+  match type of EQ1 with
+  | eutt _ _
+      (interp_mcfg3 (interp_mrec (Vellvm_Utils.mcfg_ctx ?ctx) (translate _ (denote_ocfg ?ocfg ?b))) ?g ?ρ (push_fresh_frame ?m)) =>
+      let H := fresh in
+      let H' := fresh in
+      pose proof memory_scoping_mcfg ocfg b g ρ m ctx as H;
+      pose proof has_post_enrich_eutt_r _ _ EQ1 H as H';
+      clear H EQ1; rename H' into EQ1
+  end.
+
+  edestruct @eutt_ret_inv_strong as (RESLLVM2 & EQLLVM2 & INV2); [apply EQ1 | clear EQ1].
+  destruct RESLLVM2 as (mem2 & ρ2 & g2 & v2).
+  destruct INV2 as (EQa & m'' & EQS & (FREE & _ & _)).
+  inv EQa.
+
+  exists g2, (ρI, sI), m'', rf.
+  split; auto.
+
+  cbn; rewrite EQLLVM2, bind_ret_l.
+  unfold catch_and_pop, cont_ocfg.
+  cbn; rewrite i3_bind.
+  rewrite translate_ret, interp_mrec_ret, interp3_ret.
+  rewrite bind_ret_l.
+  unfold calling_pop.
+  cbn; rewrite i3_bind.
+  destruct ρ2 as [? sf].
+  cbn in EQS; subst sf.
+  rewrite interp3_StackPop.
+  rewrite bind_ret_l.
+  rewrite i3_bind.
+  rewrite interp_mrec_trigger.
+  pose proof interp_mcfg3_trigger_is_handler3 unit (subevent _ MemPop) g2 (ρI , sI) mem2 as EQ'; cbn in EQ'.
+  rewrite EQ'; clear EQ'.
+  rewrite FREE.
+  cbn.
+  rewrite ? bind_ret_l.
+  rewrite interp_mrec_ret, interp3_ret.
+  cbn.
+  reflexivity.
+
+Qed.
+
