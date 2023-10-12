@@ -7,7 +7,7 @@ Require Import ITree.Basics.HeterogeneousRelations.
 
 Require Import MathClasses.misc.util.
 
-Require Import Vellvm.Utils.Misc
+Require Import Vellvm.Utils.Misc.
 Require Import Vellvm.Semantics.IntrinsicsDefinitions.
 
 From Coq Require Import ZArith.

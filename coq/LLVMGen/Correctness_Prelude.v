@@ -46,7 +46,7 @@ Require Export Vellvm.Utils.PostConditions.
 Require Export Vellvm.Utils.NoFailure.
 Require Export Vellvm.Utils.PropT.
 Require Export Vellvm.Utils.TFor.
-Require Export Vellvm.Utils.Misc
+Require Export Vellvm.Utils.Misc.
 Require Export Vellvm.Syntax.LLVMAst.
 Require Export Vellvm.Syntax.AstLib.
 Require Export Vellvm.Syntax.Scope.
