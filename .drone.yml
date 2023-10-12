@@ -44,6 +44,10 @@ steps:
     image: zoickx/drone-helper
     commands:
       - drone-helper notify --discord
+    when:
+      status:
+        - success
+        - failure
     settings:
       discord_webhook_token:
         from_secret: discord_webhook_token 
