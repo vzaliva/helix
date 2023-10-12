@@ -32,7 +32,6 @@ Require Export Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Export Helix.LLVMGen.Compiler.
 Require Export Helix.LLVMGen.Data.
 Require Export Helix.LLVMGen.Utils.
-Require Export Helix.LLVMGen.Vellvm_Utils.
 Require Export Helix.MSigmaHCOL.MemSetoid.
 Require Export Helix.Util.OptionSetoid.
 Require Export Helix.Util.ErrorSetoid.
@@ -47,6 +46,7 @@ Require Export Vellvm.Utils.PostConditions.
 Require Export Vellvm.Utils.NoFailure.
 Require Export Vellvm.Utils.PropT.
 Require Export Vellvm.Utils.TFor.
+Require Export Vellvm.Utils.Misc
 Require Export Vellvm.Syntax.LLVMAst.
 Require Export Vellvm.Syntax.AstLib.
 Require Export Vellvm.Syntax.Scope.

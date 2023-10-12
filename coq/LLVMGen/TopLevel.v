@@ -1,4 +1,3 @@
-Require Import Helix.LLVMGen.Vellvm_Utils.
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.EvalDenoteEquiv.
 Require Import Helix.DynWin.DynWinProofs.
@@ -867,7 +866,7 @@ Definition MAINCFG := [{|
       blk_comments := None
     |}].
 
-Require Import Helix.LLVMGen.Vellvm_Utils.
+Require Import Vellvm.Utils.Misc
 Definition mcfg_ctx := Vellvm_Utils.mcfg_ctx.
 Opaque MCFG MAIN MAINCFG DYNWIN GFUNC mcfg_ctx.
 

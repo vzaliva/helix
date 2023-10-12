@@ -1,6 +1,5 @@
 (* Definitions and lemmas related to correcntess of memory initialization *)
 
-Require Import Helix.LLVMGen.Vellvm_Utils.
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Context.
@@ -8,6 +7,7 @@ Require Import ITree.Basics.HeterogeneousRelations.
 
 Require Import MathClasses.misc.util.
 
+Require Import Vellvm.Utils.Misc
 Require Import Vellvm.Semantics.IntrinsicsDefinitions.
 
 From Coq Require Import ZArith.
