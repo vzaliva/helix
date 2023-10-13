@@ -1,4 +1,3 @@
-Require Import Helix.LLVMGen.Vellvm_Utils.
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.EvalDenoteEquiv.
 Require Import Helix.DynWin.DynWinProofs.
@@ -867,8 +866,8 @@ Definition MAINCFG := [{|
       blk_comments := None
     |}].
 
-Require Import Helix.LLVMGen.Vellvm_Utils.
-Definition mcfg_ctx := Vellvm_Utils.mcfg_ctx.
+Require Import Vellvm.Utils.Misc.
+Definition mcfg_ctx := Vellvm.Utils.Misc.mcfg_ctx.
 Opaque MCFG MAIN MAINCFG DYNWIN GFUNC mcfg_ctx.
 
 Ltac hide_MCFG l6 l3 l5 b0 l4 :=
@@ -1470,7 +1469,7 @@ Proof.
   Arguments catch_and_pop : simpl never.
 
   set (left_computation' :=
-         ℑs3 (interp_mrec (Vellvm_Utils.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr))
+         ℑs3 (interp_mrec (Vellvm.Utils.Misc.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr))
                 (Ti (⟦ MAINCFG ⟧bs (Name "main_block", Name "main_block")) >>=
                    catch_and_pop))
            gI
@@ -1548,14 +1547,14 @@ Proof.
 
 
   set (left_computation_tmp :=
-         ℑs3 (interp_mrec (Vellvm_Utils.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr))
+         ℑs3 (interp_mrec (Vellvm.Utils.Misc.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr))
                 (Ti (⟦ MAINCFG ⟧bs (Name "main_block", Name "main_block"))))
            gI
            ([], ρI :: sI)
            (push_fresh_frame memI)
            >>=
            (fun '(x,(y,(z,v))) =>
-              ℑs3 (interp_mrec (Vellvm_Utils.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr)) (catch_and_pop v)) z y x)).
+              ℑs3 (interp_mrec (Vellvm.Utils.Misc.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr)) (catch_and_pop v)) z y x)).
 
   assert (left_computation' ≈ left_computation_tmp).
   {
@@ -1568,7 +1567,7 @@ Proof.
 
   subst left_computation'.
 
-  set (left_computation' := ℑs3 (interp_mrec (Vellvm_Utils.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr))
+  set (left_computation' := ℑs3 (interp_mrec (Vellvm.Utils.Misc.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr))
                (Ti (⟦ MAINCFG ⟧bs (Name "main_block", Name "main_block"))))
           gI
           ([], ρI :: sI)
@@ -1596,7 +1595,7 @@ Proof.
         end).
 
   set (left_computation :=
-         ℑs3 (interp_mrec (Vellvm_Utils.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr))
+         ℑs3 (interp_mrec (Vellvm.Utils.Misc.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr))
 
                 (Ti (⟦ TFunctor_list' typ dtyp (typ_to_dtyp nil) (blks (df_instrs (DYNWIN bk bks2)) )⟧bs (init (df_instrs (DYNWIN bk bks2)), init (df_instrs (DYNWIN bk bks2))))
                    >>= catch_and_pop
@@ -1878,7 +1877,7 @@ Proof.
   destruct FREE_INV as (mem2' & EQ_mem2 & ALLOC_INV & READ_INV).
 
   set (left_computation' :=
-         ℑs3 (interp_mrec (Vellvm_Utils.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr))
+         ℑs3 (interp_mrec (Vellvm.Utils.Misc.mcfg_ctx (GFUNC dyn_addr bk bks2 main_addr))
                 (calling_pop UVALUE_None;; Ti
                                              (denote_instr
                                                 (IId "z",
@@ -2219,7 +2218,7 @@ Proof.
 
   match type of EQ1 with
   | eutt _ _
-      (interp_mcfg3 (interp_mrec (Vellvm_Utils.mcfg_ctx ?ctx) (translate _ (denote_ocfg ?ocfg ?b))) ?g ?ρ (push_fresh_frame ?m)) =>
+      (interp_mcfg3 (interp_mrec (Vellvm.Utils.Misc.mcfg_ctx ?ctx) (translate _ (denote_ocfg ?ocfg ?b))) ?g ?ρ (push_fresh_frame ?m)) =>
       let H := fresh in
       let H' := fresh in
       pose proof memory_scoping_mcfg ocfg b g ρ m ctx as H;
