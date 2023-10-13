@@ -1536,12 +1536,6 @@ Proof.
     }
   }
 
-  (* TODO: bunch of stuff to deal with here... *)
-
-  (*        Better nail down the other admits first so we're more *)
-  (*        confident in the loop invariant. *)
-  (*  *)
-
   { (* Invariant is stable under the administrative bookkeeping that the loop performs *)
     intros k a l' mV g id1 v BOUND HI.
     unfold I in *.
