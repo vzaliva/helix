@@ -42,7 +42,7 @@ Proof.
   intuition.
 Qed.
 
-Global Opaque resolve_PVar.
+#[global] Opaque resolve_PVar.
 
 Section BlockCount.
 
@@ -88,7 +88,7 @@ Section BlockCount.
   Proof.
     intros; cbn in *; inv_sum; reflexivity.
   Qed.
-  
+
   Lemma newLocalVar_block_count :
     ∀ (s1 s2 : IRState) bid p x,
       newLocalVar p x s1 ≡ inr (s2, bid) →
@@ -225,7 +225,7 @@ Section BlockCount.
   Qed.
 
 End BlockCount.
-       
+
 Section LocalCount.
 
   Lemma newLocalVar_local_count :
@@ -389,17 +389,17 @@ Section LocalCount.
       local_count s2 > local_count s1.
   Proof.
     intros.
-    cbn in H; simp; __local_ltac; lia. 
+    cbn in H; simp; __local_ltac; lia.
   Qed.
 
   Lemma genIMapBody_local_count:
-    ∀ (f : AExpr) (i0 : ident) (i1 : Int64.int) (i3 : ident) (i4 : Int64.int) (i6 : IRState) (loopcontblock : block_id) (loopvar : raw_id) 
+    ∀ (f : AExpr) (i0 : ident) (i1 : Int64.int) (i3 : ident) (i4 : Int64.int) (i6 : IRState) (loopcontblock : block_id) (loopvar : raw_id)
       (body_entry : block_id) (body_blocks : list (LLVMAst.block typ)) (s1_ : IRState),
       genIMapBody i1 i4 i0 i3 f loopvar loopcontblock i6 ≡ inr (s1_, (body_entry, body_blocks)) →
       local_count s1_ > local_count i6 .
   Proof.
     intros.
-    cbn in H; simp; __local_ltac; lia. 
+    cbn in H; simp; __local_ltac; lia.
   Qed.
 
   Lemma genIR_local_count :
@@ -407,7 +407,7 @@ Section LocalCount.
       genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) ->
       local_count s2 >= local_count s1.
   Proof.
-    induction op; intros; cbn in H; simp; __local_ltac; try lia. 
+    induction op; intros; cbn in H; simp; __local_ltac; try lia.
   Qed.
 
 End LocalCount.
@@ -503,4 +503,3 @@ Ltac solve_block_count := try solve [ cbn; get_block_count_hyps; lia
 
 Notation "s1 << s2" := (local_count s1 < local_count s2) (at level 50).
 Notation "s1 <<= s2" := (local_count s1 <= local_count s2) (at level 50).
-

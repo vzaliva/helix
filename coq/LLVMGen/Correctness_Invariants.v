@@ -295,7 +295,7 @@ Section SimulationRelations.
       nth_error σ n2 ≡ Some v2 ->
       nth_error (Γ s) n1 ≡ Some (id, τ) ->
       nth_error (Γ s) n2 ≡ Some (id, τ') ->
-      n2 ≡ n1. 
+      n2 ≡ n1.
 
   Definition no_llvm_ptr_aliasing (σ : evalContext) (s : IRState) (ρ : local_env) (g : global_env) : Prop :=
     forall (id1 : ident) (ptrv1 : addr) (id2 : ident) (ptrv2 : addr) n1 n2 τ τ' v1 v2 b b',
@@ -343,7 +343,7 @@ Section SimulationRelations.
       n' ≡ n.
   Proof.
     intros s σ n n' id τ τ' ALIAS N1 N2.
-    edestruct ALIAS; eauto. 
+    edestruct ALIAS; eauto.
   Qed.
 
   Definition no_local_global_alias (l : local_env) (g : global_env) (v : uvalue) : Prop :=
@@ -365,6 +365,36 @@ Section SimulationRelations.
      At any indices, the value and ident/types respectively found are related in that:
      - integers and floats have their translation in the appropriate VIR environment;
      - pointers have a corresponding pointer in the appropriate VIR environment such that they map on identical arrays
+
+
+SOURCE     result is v
+  |
+  v
+RSHCOL
+  | C
+  v
+FSHCOL   ~ exists y, final mem y == v
+
+forall error, exists p, C(p) is error off from p
+
+SOURCE     result is v
+  |
+  v
+
+(* FSHCOL   ~ exists y, final mem y == v *)
+  |
+  v
+VELLVM   ~ exists y', final mem' y' == v
+final mem y == final mem' y' == v
+
+L1 -C1-> L2 -C2-> L3
+
+forall p1, C1(p1) === p1
+forall p2, C2(p2) === p2
+
+C2(C1(p1)) == p1
+
+
    *)
   Definition memory_invariant (σ : evalContext) (s : IRState) : Rel_cfg :=
     fun (mem_helix : FHCOL.memory) '(mem_llvm, (ρ,g)) =>
@@ -500,7 +530,7 @@ Section SimulationRelations.
       The main invariant carried around combine the two properties defined:
       1. the memories satisfy the invariant;
       2. the [IRState] is well formed;
-      3. 
+      3.
    *)
   Record state_invariant (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) : Prop :=
     {
@@ -619,6 +649,41 @@ Section SimulationRelations.
           apply In_add_ineq_iff in H5; eauto.
   Qed.
 
+  Lemma state_invariant_cons :
+    forall a x s' s σ mH mV l g,
+      s <<= s' ->
+      x :: Γ s' ≡ Γ s ->
+      state_invariant (a :: σ) s mH (mV, (l, g)) ->
+      state_invariant σ s' mH (mV, (l, g)).
+  Proof.
+    intros * LT GAM INV.
+    destruct INV.
+    unfold memory_invariant, WF_IRState, no_id_aliasing, no_dshptr_aliasing, no_llvm_ptr_aliasing, id_allocated in *.
+    rewrite <- GAM in *.
+    cbn in *.
+    split; eauto; red; repeat intro.
+    - intros. specialize (mem_is_inv0 (S n)).
+      cbn in *.
+      specialize (mem_is_inv0 _ _ _ _ H H0). destruct v; eauto.
+    - red in IRState_is_WF0. specialize (IRState_is_WF0 v (S n)).
+      cbn in *. eauto.
+    - assert ((S n2) ≡ (S n1) -> n2 ≡ n1) by lia. apply H3.
+      eapply st_no_id_aliasing0; eauto.
+    - assert ((S n') ≡ (S n) -> n' ≡ n) by lia. apply H1.
+      eapply st_no_dshptr_aliasing0; eauto.
+    - red in st_no_llvm_ptr_aliasing0.
+      specialize (st_no_llvm_ptr_aliasing0 id1 ptrv1 id2 ptrv2 (S n1) (S n2)).
+      cbn in *. rewrite <- GAM in *. revert H6. eapply st_no_llvm_ptr_aliasing0; eauto.
+    - specialize (st_id_allocated0 (S n)). cbn in *. eauto.
+    - unfold gamma_bound in st_gamma_bound0.
+      eapply state_bound_mono.
+      eapply st_gamma_bound0.
+      2: solve_local_count.
+      rewrite <- GAM.
+      rewrite nth_error_Sn.
+      eauto.
+  Qed.
+
   Lemma state_invariant_cons2 :
     forall a b x y s' s σ mH mV l g,
       s <<= s' ->
@@ -654,9 +719,44 @@ Section SimulationRelations.
       eauto.
   Qed.
 
+  Lemma state_invariant_cons3 :
+    forall a b c x y z s' s σ mH mV l g,
+      s <<= s' ->
+      x :: y :: z :: Γ s' ≡ Γ s ->
+      state_invariant (a :: b :: c :: σ) s mH (mV, (l, g)) ->
+      state_invariant σ s' mH (mV, (l, g)).
+  Proof.
+    intros * LT GAM INV.
+    destruct INV.
+    unfold memory_invariant, WF_IRState, no_id_aliasing, no_dshptr_aliasing, no_llvm_ptr_aliasing, id_allocated in *.
+    rewrite <- GAM in *.
+    cbn in *.
+    split; eauto; red; repeat intro.
+    - intros. specialize (mem_is_inv0 (S (S (S n)))).
+      cbn in *.
+      specialize (mem_is_inv0 _ _ _ _ H H0). destruct v; eauto.
+    - red in IRState_is_WF0. specialize (IRState_is_WF0 v (S (S (S n)))).
+      cbn in *. eauto.
+    - assert (S (S (S n2)) ≡ S (S (S n1)) -> n2 ≡ n1) by lia. apply H3.
+      eapply st_no_id_aliasing0; eauto.
+    - assert (S (S (S n')) ≡ S (S (S n)) -> n' ≡ n) by lia. apply H1.
+      eapply st_no_dshptr_aliasing0; eauto.
+    - red in st_no_llvm_ptr_aliasing0.
+      specialize (st_no_llvm_ptr_aliasing0 id1 ptrv1 id2 ptrv2 (S (S (S n1))) (S (S (S n2)))).
+      cbn in *. rewrite <- GAM in *. revert H6. eapply st_no_llvm_ptr_aliasing0;eauto.
+    - specialize (st_id_allocated0 (S (S (S n)))). cbn in *. eauto.
+    - unfold gamma_bound in st_gamma_bound0.
+      eapply state_bound_mono.
+      eapply st_gamma_bound0.
+      2: solve_local_count.
+      rewrite <- GAM.
+      do 3 rewrite nth_error_Sn.
+      eauto.
+  Qed.
+
   (* The memory invariant is stable by evolution of IRStates that preserve Γ *)
   Lemma state_invariant_same_Γ :
-    ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
+    ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV)
       (l : local_env) (g : global_env) (v : uvalue),
       Γ s1 ≡ Γ s2 ->
       s1 <<= s2 ->
@@ -718,7 +818,7 @@ Section SimulationRelations.
   Qed.
 
   Lemma state_invariant_same_Γ' :
-    ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
+    ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV)
       (l : local_env) (g : global_env) (v : uvalue),
       Γ s1 ≡ Γ s2 ->
       gamma_bound s2 ->
@@ -883,7 +983,7 @@ Section SimulationRelations.
    if the variable belongs to a Γ safe interval
    *)
   Lemma state_invariant_add_fresh :
-    ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
+    ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV)
       (l : local_env) (g : global_env) (v : uvalue),
       incLocal s1 ≡ inr (s2, id)
       -> WF_IRState σ s2
@@ -935,13 +1035,13 @@ Section SimulationRelations.
       assert (Γ s' ≡ Γ s) as GAMMA by (eapply incVoid_Γ; eauto).
       rewrite GAMMA in *.
       generalize LUV; intros INLG;
-        eapply mem_is_inv0 in INLG; eauto. 
+        eapply mem_is_inv0 in INLG; eauto.
     - unfold WF_IRState; erewrite incVoid_Γ; eauto; apply WF.
     - eapply incVoid_no_id_aliasing; eauto.
     - destruct stV as [m [l g]].
       eapply incVoid_no_llvm_ptr_aliasing; eauto.
     - solve_gamma_bound.
-  Qed.    
+  Qed.
 
   (* If no change has been made, all changes are certainly in the interval *)
   Lemma local_scope_modif_refl: forall s1 s2 l, local_scope_modif s1 s2 l l.
@@ -952,7 +1052,7 @@ Section SimulationRelations.
 
   (* If a single change has been made, we just need to check that it was in the interval *)
   Lemma local_scope_modif_add: forall s1 s2 l r v,
-      lid_bound_between s1 s2 r ->   
+      lid_bound_between s1 s2 r ->
       local_scope_modif s1 s2 l (alist_add r v l).
   Proof.
     intros * BET.
@@ -1071,7 +1171,7 @@ Section SimulationRelations.
       Maps.add x v m @ id ≡ m @ id.
   Proof.
     intros K V eqk RD RDC SYM TRANS H x id v m H0.
-    cbn. unfold alist_add; cbn. 
+    cbn. unfold alist_add; cbn.
     rewrite rel_dec_neq_false; eauto.
     eapply remove_neq_alist; eauto.
   Qed.
@@ -1106,6 +1206,27 @@ Section SimulationRelations.
       contradiction.
     - esplit; eauto.
       eapply evalContext_typechecks_extend; eauto.
+  Qed.
+
+  Lemma not_in_gamma_cons2 :
+    ∀ σ s1 s2 id id' id'' τ v1 v2,
+      Γ s2 ≡ (ID_Local id', τ) :: (ID_Local id'', τ) :: Γ s1 →
+      ~ in_Gamma σ s1 id →
+      id ≢ id' →
+      id ≢ id'' →
+      ~ in_Gamma (v1 :: v2 :: σ) s2 id.
+  Proof.
+    intros.
+    set (s' :=
+           {| block_count := block_count s1;
+             local_count := local_count s1;
+             void_count := void_count s1;
+             Γ := (ID_Local id'', τ) :: Γ s1 |}).
+    eapply not_in_gamma_cons with (s1 := s').
+    rewrite H; reflexivity.
+    eapply not_in_gamma_cons.
+    reflexivity.
+    all: auto.
   Qed.
 
   (* If I know that an interval leaves Gamma safe, I can shrink it on either side and it still lives Gamma safe *)
@@ -1176,7 +1297,7 @@ Section SimulationRelations.
   Lemma local_scope_preserve_modif:
     forall s1 s2 s3 l1 l2,
       local_scope_modif s2 s3 l1 l2 ->
-      local_scope_preserved s1 s2 l1 l2. 
+      local_scope_preserved s1 s2 l1 l2.
   Proof.
     intros * MOD.
     red. intros * BOUND.
@@ -1199,7 +1320,7 @@ Section SimulationRelations.
   Lemma local_scope_preserve_modif_up :
     forall s1 s2 s3 l1 l2,
       local_scope_modif s1 s2 l1 l2 ->
-      local_scope_preserved s2 s3 l1 l2. 
+      local_scope_preserved s2 s3 l1 l2.
   Proof.
     intros * MOD.
     red. intros * BOUND.
@@ -1308,6 +1429,47 @@ Section SimulationRelations.
     intros s1 s2 s3 s4 id H H0 H1.
     eapply lid_bound_between_shrink_down; [|eapply lid_bound_between_shrink_up];
       eauto.
+  Qed.
+
+  (* Convenience wrapper over [Gamma_safe_Context_extend]: two var case *)
+  Lemma Gamma_safe_Context_extend2 :
+    forall σ s1 s2,
+      Gamma_safe σ s1 s2 ->
+      forall s1' s2' x y v xτ yτ,
+        (local_count s1 <= local_count s1')%nat ->
+        (local_count s2 >= local_count s2')%nat ->
+        Γ s1' ≡ (ID_Local x, v) :: (ID_Local y, v) :: Γ s1 ->
+        Γ s2' ≡ (ID_Local x, v) :: (ID_Local y, v) :: Γ s2 ->
+        (∀ id : local_id, lid_bound_between s1' s2' id → x ≢ id) ->
+        (∀ id : local_id, lid_bound_between s1' s2' id → y ≢ id) ->
+        Gamma_safe (xτ :: yτ :: σ) s1' s2'.
+  Proof.
+    intros * SAFE * LC1 LC2 G1 G2 UNIQ_X UNIQ_Y.
+    set (s1'' :=
+           {| block_count := block_count s1';
+             local_count := local_count s1';
+             void_count := void_count s1';
+             Γ := (ID_Local y, v) :: Γ s1 |}).
+    set (s2'' :=
+           {| block_count := block_count s2';
+             local_count := local_count s2';
+             void_count := void_count s2';
+             Γ := (ID_Local y, v) :: Γ s2 |}).
+
+    eapply Gamma_safe_Context_extend with (s1:=s1'') (s2:=s2''); cycle 1.
+    solve_local_count.
+    solve_local_count.
+    now rewrite G1.
+    now rewrite G2.
+    auto.
+
+    eapply Gamma_safe_Context_extend.
+    eapply SAFE.
+    solve_local_count.
+    solve_local_count.
+    reflexivity.
+    reflexivity.
+    auto.
   Qed.
 
   (* Transitivity of the changes belonging to intervals *)
@@ -1464,20 +1626,58 @@ Section SimulationRelations.
   Definition global_named_ptr_exists (fnname:string) : Pred_cfg :=
     fun '(mem_llvm, (ρ,g)) => exists mf, g @ (Name fnname) ≡ Some (DVALUE_Addr mf).
 
-  (* For compiled FHCOL programs we need to ensure we have 2 declarations:
+  (* Anon pointer exists in global environemnts *)
+  Definition global_anon_ptr_exists (id:int) : Pred_cfg :=
+    fun '(mem_llvm, (ρ,g)) => exists mf, g @ (Anon id) ≡ Some (DVALUE_Addr mf).
+
+  (* For compiled FHCOL programs we need to ensure we have 2 global function declarations:
      1. "main" function
      2. function, implementing compiled expression.
+
+     We do not state here that their addresses are distinct
+     but we have this in [state_invariant].
    *)
-  Definition declarations_invariant (fnname:string) : Pred_cfg :=
-    fun c =>
-      global_named_ptr_exists "main" c /\
-      global_named_ptr_exists fnname c.
+  Definition fun_declarations_invariant (fnname:string) : Pred_cfg :=
+    fun c => global_named_ptr_exists "main" c /\ global_named_ptr_exists fnname c.
+
+  (* For compiled FHCOL programs we need to ensure we have 2 global anonymous variables exist:
+     1. Placeholder for X (Anon 0)
+     2. Placeholder for Y (Anon 1)
+
+     We do not state here that their addresses are distinct
+     but we have this in [state_invariant].
+   *)
+  Definition anon_declarations_invariant : Pred_cfg :=
+    fun c => global_anon_ptr_exists 0%Z c /\ global_anon_ptr_exists 1%Z c.
+
+  Definition in_global_addr (g : global_env) (x : raw_id) (a : Addr.addr) :=
+    g @ x ≡ Some (DVALUE_Addr a).
+
+  Definition genv_ptr_uniq (g : global_env) :=
+    ∀ (id id' : raw_id) (ptr ptr' : addr),
+      in_global_addr g id ptr →
+      in_global_addr g id' ptr' →
+      fst ptr ≡ fst ptr' ->
+      id ≡ id'.
+
+  Definition genv_mem_bounded (g : global_env) (m : memoryV) :=
+    forall id a,
+      g @ id ≡ Some (DVALUE_Addr a) ->
+      (fst a < next_logical_key m)%Z.
+
+  Definition genv_mem_wf (g : global_env) (m : memoryV) :=
+    genv_ptr_uniq g /\ genv_mem_bounded g m.
+
+  Definition genv_mem_wf_cfg : config_cfg -> Prop :=
+    fun '(memV, (_, genv)) => genv_mem_wf genv memV.
 
   (** An invariant which must hold after initialization stage *)
   Record post_init_invariant (fnname:string) (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) : Prop :=
     {
-    state_inv: state_invariant σ s memH configV;
-    decl_inv:  declarations_invariant fnname configV
+      state_inv: state_invariant σ s memH configV;
+      fun_decl_inv:  fun_declarations_invariant fnname configV;
+      anon_decl_inv: anon_declarations_invariant configV;
+      genv_mem_wf_inv: genv_mem_wf_cfg configV
     }.
 
   (**
@@ -1503,7 +1703,7 @@ Section SimulationRelations.
   Definition bisim_full (σ : evalContext) (s : IRState) : Type_R_full  :=
     fun '(mem_helix, _) mem_llvm =>
       let '(m, ((ρ,_), (g, v))) := mem_llvm in
-      bisim_partial σ s (mem_helix, tt) (mk_config_cfg_T (inr v) (m, (ρ, g))).
+      bisim_partial σ s (mem_helix, tt) (mk_config_cfg_T _ (inr v) (m, (ρ, g))).
 
   (** Relation bewteen the final states of evaluation and execution
     of DHCOL program.
@@ -1525,6 +1725,20 @@ Section SimulationRelations.
                                           h_result arr
       | _ => False
       end.
+
+  (* The result is a branch *)
+  Definition branches (to : block_id) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
+    match c with
+    | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
+    end.
+
+  Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env) (gi : global_env)
+    : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
+    lift_Rel_cfg (state_invariant σ s2) ⩕
+      branches to ⩕
+      (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf)) /\
+                       (* global environment remains unchanged (gi - env at start of execution)*)
+                       gi ≡ (fst (snd (snd stvf)))).
 
 End SimulationRelations.
 
@@ -1744,7 +1958,7 @@ Proof.
 Qed.
 
 Lemma state_invariant_add_fresh' :
-  ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
+  ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV)
     (l : local_env) (g : global_env) (v : uvalue),
     Gamma_safe σ s1 s2
     -> lid_bound_between s1 s2 id
@@ -1807,7 +2021,7 @@ Qed.
 (* TO MOVE *)
 Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
 
-Lemma state_invariant_enter_scope_DSHnat : 
+Lemma state_invariant_enter_scope_DSHnat :
   forall σ v prefix x s1 s2 stH mV l g b,
     newLocalVar IntType prefix s1 ≡ inr (s2, x) ->
     is_correct_prefix prefix ->
@@ -1869,7 +2083,7 @@ Proof.
   - solve_gamma_bound.
 Qed.
 
-Lemma state_invariant_enter_scope_DSHCType : 
+Lemma state_invariant_enter_scope_DSHCType :
   forall σ v prefix x s1 s2 stH mV l g b,
     newLocalVar TYPE_Double prefix s1 ≡ inr (s2, x) ->
     is_correct_prefix prefix ->
@@ -1930,7 +2144,7 @@ Proof.
   - solve_gamma_bound.
 Qed.
 
-Lemma state_invariant_enter_scope_DSHCType' : 
+Lemma state_invariant_enter_scope_DSHCType' :
   forall σ v b x s1 s2 stH mV l g τ,
     τ ≡ getWFType (ID_Local x) DSHCType ->
     Γ s2 ≡ (ID_Local x,τ) :: Γ s1 ->
@@ -2000,6 +2214,86 @@ Proof.
   - solve_gamma_bound.
 Qed.
 
+Lemma state_invariant_enter_scope_DSHCType'2 :
+  forall σ vx vy b x y s1 s2 stH mV l g τx τy,
+    x ≢ y ->
+    τx ≡ getWFType (ID_Local x) DSHCType ->
+    τy ≡ getWFType (ID_Local y) DSHCType ->
+    Γ s2 ≡ (ID_Local x,τx) :: (ID_Local y,τy) :: Γ s1 ->
+    lid_bound s2 x ->
+    lid_bound s2 y ->
+
+    (* Freshness *)
+    ~ in_Gamma σ s1 x ->
+    ~ in_Gamma σ s1 y ->
+    s1 <<= s2 ->
+
+    l @ x ≡ Some (UVALUE_Double vx) ->
+    l @ y ≡ Some (UVALUE_Double vy) ->
+    state_invariant σ s1 stH (mV,(l,g)) ->
+    state_invariant ((DSHCTypeVal vx, b)::(DSHCTypeVal vy, b)::σ) s2 stH (mV,(l,g)).
+Proof.
+  intros * NEQ TYP_X TYP_Y EQ LID_BOUND_X LID_BOUND_Y
+             GAM_X GAM_Y LT LU_X LU_Y [MEM WF ALIAS1 ALIAS2 ALIAS3].
+    cbn in TYP_X, TYP_Y; subst.
+  split.
+  - red; intros * LU1 LU2.
+    rewrite EQ in *.
+    destruct n as [| [| n]].
+    + inv LU1; inv LU2; auto.
+    + inv LU1; inv LU2; auto.
+    + rewrite !nth_error_Sn in LU1.
+      cbn in *.
+      eapply MEM in LU2; eauto.
+  -  do 2 red.
+     rewrite EQ.
+     cbn.
+     intros ? [| [| n]] * LU'.
+     + cbn in LU'.
+       inv LU'.
+       cbn.
+       exists (ID_Local x); reflexivity.
+     + cbn in LU'.
+       inv LU'.
+       cbn.
+       exists (ID_Local y); reflexivity.
+     + rewrite !nth_error_Sn in LU'.
+       rewrite nth_error_Sn.
+       apply WF in LU'; auto.
+
+  - red; intros * LU1 LU2 LU3 LU4.
+    clear MEM.
+    rewrite EQ in *.
+    destruct n1 as [| [| n1]], n2 as [| [| n2]]; auto.
+    all: cbn in *; repeat find_inversion.
+    all: try now contradict NEQ.
+    all: try solve [exfalso; eapply GAM_X; eapply mk_in_Gamma; eauto].
+    all: try solve [exfalso; eapply GAM_Y; eapply mk_in_Gamma; eauto].
+    do 2 f_equal.
+    eauto.
+  - red; intros * LU1 LU2.
+    destruct n as [| [| n]], n' as [| [| n']]; auto.
+    all: cbn in *; repeat find_inversion.
+    do 2 f_equal.
+    eauto.
+  - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ IN1 IN2.
+    rewrite EQ in *.
+    cbn in *.
+    destruct n1 as [| [| n1]], n2 as [| [| n2]]; auto.
+    all: cbn in *; repeat find_inversion; cbn in *.
+    all: try first [rewrite LU_X in IN1 | rewrite LU_Y in IN1].
+    all: try first [rewrite LU_X in IN2 | rewrite LU_Y in IN2].
+    all: repeat find_inversion.
+    eauto.
+  - intros [| [| n]] * LUn; inv LUn.
+    eapply st_id_allocated0; eauto.
+  -
+    unfold gamma_bound.
+    rewrite EQ.
+    intros [| [| n]] * LUn; inv LUn.
+    all: solve_lid_bound.
+Qed.
+
 Lemma state_invariant_enter_scope_DSHPtr :
   forall σ ptrh sizeh ptrv x τ s1 s2 stH mV mV_a l g b,
     τ ≡ getWFType (ID_Local x) (DSHPtr sizeh) ->
@@ -2035,7 +2329,7 @@ Proof.
       inv alloc.
       rewrite get_logical_block_of_add_to_frame. cbn.
       rewrite get_logical_block_of_add_logical_block.
-      
+
       auto. eexists. eexists. eexists. split; auto.
       reflexivity. cbn. rewrite typ_to_dtyp_D_array. cbn. lia.
       split; auto. inv alloc.
@@ -2180,7 +2474,7 @@ Proof.
       cbn in LU2.
       cbn in LU4.
       apply GAM; eapply mk_in_Gamma; eauto.
- 
+
     + exfalso.
       inv LU2; rewrite EQ in LU4; inv LU4.
       rewrite EQ in LU3.
@@ -2437,7 +2731,7 @@ Proof.
     destruct n'. lia. reflexivity. reflexivity.
   - intros. destruct σ eqn: Hσ. unfold protect. cbn.
     destruct (nth_error [] n') eqn: Hn. destruct p. reflexivity. reflexivity.
-    destruct n'. cbn. destruct p. reflexivity. 
+    destruct n'. cbn. destruct p. reflexivity.
     rewrite protect_cons_S.
     rewrite nth_error_Sn.
     rewrite nth_error_Sn. eapply IHn. lia.
@@ -2762,7 +3056,7 @@ Proof.
         pose proof (IRState_is_WF0 _ _ _ NTH_σ0) as (id' & NTH_Γ0').
         rewrite NTH_Γ0 in NTH_Γ0'; inv NTH_Γ0'.
         cbn in H1. inv H1.
-        
+
         eapply write_different_blocks; eauto.
         2: reflexivity.
         2: { typ_to_dtyp_simplify. constructor. }
@@ -2790,7 +3084,7 @@ Proof.
         pose proof (IRState_is_WF0 _ _ _ NTH_σ0) as (id' & NTH_Γ0').
         rewrite NTH_Γ0 in NTH_Γ0'; inv NTH_Γ0'.
         cbn in H1. inv H1.
-        
+
         eapply write_different_blocks; eauto.
         2: reflexivity.
         2: { typ_to_dtyp_simplify. constructor. }
@@ -2932,7 +3226,7 @@ Proof.
         pose proof (IRState_is_WF0 _ _ _ NTH_σ0) as (id' & NTH_Γ0').
         rewrite NTH_Γ0 in NTH_Γ0'; inv NTH_Γ0'.
         cbn in H1. inv H1.
-        
+
         eapply write_different_blocks; eauto.
         2: reflexivity.
         2: { typ_to_dtyp_simplify. constructor. }
@@ -2960,7 +3254,7 @@ Proof.
         pose proof (IRState_is_WF0 _ _ _ NTH_σ0) as (id' & NTH_Γ0').
         rewrite NTH_Γ0 in NTH_Γ0'; inv NTH_Γ0'.
         cbn in H1. inv H1.
-        
+
         eapply write_different_blocks; eauto.
         2: reflexivity.
         2: { typ_to_dtyp_simplify. constructor. }
@@ -3055,6 +3349,25 @@ Proof.
   eauto.
 Qed.
 
+(* TODO: tactics? *)
+Ltac solve_allocated :=
+  solve [ eauto
+        | eapply dtyp_fits_allocated; eauto
+        | eapply handle_gep_addr_allocated; cycle 1; [solve [eauto] | solve_allocated]
+        | eapply write_preserves_allocated; cycle 1; [solve [eauto] | solve_allocated]
+        | eapply id_allocated_memory_set; eauto
+        ].
+
+Ltac solve_read :=
+  solve [ eauto
+        (* This is largely for cases where sizeof_dtyp t <> 0 -> read ... *)
+        | match goal with
+          | H: _ |- _ => apply H
+          end; cbn; lia
+        | (* read from an array *)
+        erewrite read_array; cycle 2; [solve [eauto] | | solve_allocated]; eauto
+        ].
+
 Lemma state_invariant_write_double_result :
   forall σ s hid mH mV mV_init l g v mb mb_old dst_addr_h ptrll (dst_addr : addr) dst_size_h b_hid y id_addr sz sz',
     state_invariant (protect σ hid) s mH (mV, (l, g)) ->
@@ -3063,7 +3376,7 @@ Lemma state_invariant_write_double_result :
     in_local_or_global_addr l g id_addr ptrll ->
     ext_memory mV_init dst_addr DTYPE_Double (UVALUE_Double v) mV ->
     handle_gep_addr (DTYPE_Array sz' DTYPE_Double) ptrll
-                    [DVALUE_I64 (repr 0); DVALUE_I64 (repr (Z.of_nat (MInt64asNT.to_nat y)))] ≡ 
+                    [DVALUE_I64 (repr 0); DVALUE_I64 (repr (Z.of_nat (MInt64asNT.to_nat y)))] ≡
                     inr dst_addr ->
     (∀ x : nat, x ≢ MInt64asNT.to_nat y → mem_lookup x mb ≡ mem_lookup x mb_old) ->
     mem_lookup (MInt64asNT.to_nat y) mb ≡ Some v ->
@@ -3289,7 +3602,7 @@ Ltac solve_not_in_gamma :=
   first [ now eauto
         |
       match goal with
-      | GAM : Gamma_safe ?σ ?si ?sf |- 
+      | GAM : Gamma_safe ?σ ?si ?sf |-
         ~ in_Gamma ?σ ?si ?id =>
         eapply GAM; solve_lid_bound_between
       end
@@ -3298,19 +3611,19 @@ Ltac solve_not_in_gamma :=
     | solve [eapply not_in_gamma_cons; [cbn; eauto; try solve_gamma | solve_not_in_gamma |]]
     ].
 
-Hint Resolve state_invariant_memory_invariant : core.
-Hint Resolve memory_invariant_GLU memory_invariant_LLU memory_invariant_LLU_AExpr memory_invariant_GLU_AExpr : core.
+#[export] Hint Resolve state_invariant_memory_invariant : core.
+#[export] Hint Resolve memory_invariant_GLU memory_invariant_LLU memory_invariant_LLU_AExpr memory_invariant_GLU_AExpr : core.
 
-Hint Resolve is_pure_refl: core.
-Hint Resolve local_scope_modif_refl: core.
+#[export] Hint Resolve is_pure_refl: core.
+#[export] Hint Resolve local_scope_modif_refl: core.
 
-Hint Resolve genNExpr_Γ : helix_context.
-Hint Resolve genMExpr_Γ : helix_context.
-Hint Resolve incVoid_Γ        : helix_context.
-Hint Resolve incLocal_Γ       : helix_context.
-Hint Resolve incBlockNamed_Γ  : helix_context.
-Hint Resolve genAExpr_Γ : helix_context.
-Hint Resolve genIR_Γ  : helix_context.
+#[export] Hint Resolve genNExpr_Γ : helix_context.
+#[export] Hint Resolve genMExpr_Γ : helix_context.
+#[export] Hint Resolve incVoid_Γ        : helix_context.
+#[export] Hint Resolve incLocal_Γ       : helix_context.
+#[export] Hint Resolve incBlockNamed_Γ  : helix_context.
+#[export] Hint Resolve genAExpr_Γ : helix_context.
+#[export] Hint Resolve genIR_Γ  : helix_context.
 
 (* TODO: expand this *)
 Ltac solve_gamma_safe :=
@@ -3320,13 +3633,13 @@ Ltac solve_gamma_safe :=
 Ltac solve_local_scope_modif :=
   cbn; eauto with LSM.
 
-Hint Immediate local_scope_modif_refl : LSM.
-Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound_between : LSM.
-Hint Extern 1 (lid_bound _ _) => solve_lid_bound : LSM.
-Hint Resolve local_scope_modif_add' : LSM.
-Hint Resolve local_scope_modif_shrink : LSM.
-Hint Extern 1 (_ <<= _) => solve_local_count : LSM.
-Hint Extern 2 (local_scope_modif _ _ _ _) => eapply local_scope_modif_trans; cycle 2; eauto; solve_local_count : LSM.
+#[export] Hint Immediate local_scope_modif_refl : LSM.
+#[export] Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound_between : LSM.
+#[export] Hint Extern 1 (lid_bound _ _) => solve_lid_bound : LSM.
+#[export] Hint Resolve local_scope_modif_add' : LSM.
+#[export] Hint Resolve local_scope_modif_shrink : LSM.
+#[export] Hint Extern 1 (_ <<= _) => solve_local_count : LSM.
+#[export] Hint Extern 2 (local_scope_modif _ _ _ _) => eapply local_scope_modif_trans; cycle 2; eauto; solve_local_count : LSM.
 
 (* Slightly more aggressive with transitivity... May get stuck *)
 Ltac solve_local_scope_modif_trans :=
@@ -3338,12 +3651,12 @@ Ltac solve_local_scope_modif_trans :=
     | eapply local_scope_modif_trans; cycle 3; [solve_local_scope_modif_trans | solve_local_count | solve_local_count | solve_local_scope_modif_trans]
     ].
 
-Hint Immediate Gamma_preserved_refl : SolveGammaPreserved.
-Hint Extern 1 (~ (in_Gamma _ _ _)) => solve_not_in_gamma : SolveGammaPreserved.
-Hint Resolve Gamma_preserved_add_not_in_Gamma : SolveGammaPreserved.
-Hint Resolve Gamma_preserved_if_safe : SolveGammaPreserved.
-Hint Extern 1 (local_scope_modif _ _ _ _) => solve_local_scope_modif : SolveGammaPreserved.
-Hint Extern 1 (Gamma_safe _ _ _) => solve_gamma_safe : SolveGammaPreserved.
+#[export] Hint Immediate Gamma_preserved_refl : SolveGammaPreserved.
+#[export] Hint Extern 1 (~ (in_Gamma _ _ _)) => solve_not_in_gamma : SolveGammaPreserved.
+#[export] Hint Resolve Gamma_preserved_add_not_in_Gamma : SolveGammaPreserved.
+#[export] Hint Resolve Gamma_preserved_if_safe : SolveGammaPreserved.
+#[export] Hint Extern 1 (local_scope_modif _ _ _ _) => solve_local_scope_modif : SolveGammaPreserved.
+#[export] Hint Extern 1 (Gamma_safe _ _ _) => solve_gamma_safe : SolveGammaPreserved.
 
 Ltac solve_gamma_preserved :=
   solve [eauto with SolveGammaPreserved].
@@ -3473,7 +3786,7 @@ Ltac solve_in_local_or_global_scalar :=
     | solve [eapply in_local_or_global_scalar_not_in_gamma; [solve_in_gamma | solve_not_in_gamma | solve_in_local_or_global_scalar]]
     ].
 
-Hint Resolve state_invariant_memory_invariant state_invariant_WF_IRState : core.
+#[export] Hint Resolve state_invariant_memory_invariant state_invariant_WF_IRState : core.
 
 Lemma local_scope_preserved_bound_earlier :
   forall s1 s2 s3 x v l l',
@@ -3524,25 +3837,25 @@ Proof.
   solve_id_neq.
 Qed.
 
-Hint Extern 1 (local_scope_modif _ _ _ _) => solve_local_scope_modif : LocalScopePreserved.
-Hint Extern 1 (Gamma_safe _ _ _) => solve_gamma_safe : LocalScopePreserved.
-Hint Extern 1 (_ <<= _) => solve_local_count : LocalScopePreserved.
-Hint Extern 1 (lid_bound _ _) => solve_lid_bound : LocalScopePreserved.
-Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound : LocalScopePreserved.
-Hint Immediate local_scope_preserve_modif : LocalScopePreserved.
-Hint Resolve local_scope_preserved_refl local_scope_preserved_bound_earlier : LocalScopePreserved.
-Hint Resolve local_scope_preserved_add_bound_later local_scope_preserved_add_bound_earlier : LocalScopePreserved.
-Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound_between : LocalScopePreserved.
+#[export] Hint Extern 1 (local_scope_modif _ _ _ _) => solve_local_scope_modif : LocalScopePreserved.
+#[export] Hint Extern 1 (Gamma_safe _ _ _) => solve_gamma_safe : LocalScopePreserved.
+#[export] Hint Extern 1 (_ <<= _) => solve_local_count : LocalScopePreserved.
+#[export] Hint Extern 1 (lid_bound _ _) => solve_lid_bound : LocalScopePreserved.
+#[export] Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound : LocalScopePreserved.
+#[export] Hint Immediate local_scope_preserve_modif : LocalScopePreserved.
+#[export] Hint Resolve local_scope_preserved_refl local_scope_preserved_bound_earlier : LocalScopePreserved.
+#[export] Hint Resolve local_scope_preserved_add_bound_later local_scope_preserved_add_bound_earlier : LocalScopePreserved.
+#[export] Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound_between : LocalScopePreserved.
 
 Ltac solve_local_scope_preserved :=
   solve [eauto with LocalScopePreserved].
 
 Ltac solve_state_invariant := eauto with SolveStateInv.
-Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incBlockNamed; [eassumption | solve_state_invariant] : SolveStateInv.
-Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocal; [eassumption | solve_state_invariant] : SolveStateInv.
-Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocalNamed; [eassumption | solve_state_invariant] : SolveStateInv.
-Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eassumption | solve_state_invariant] : SolveStateInv.
-Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocalNamed; [eassumption | solve_state_invariant] : SolveStateInv.
+#[export] Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incBlockNamed; [eassumption | solve_state_invariant] : SolveStateInv.
+#[export] Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocal; [eassumption | solve_state_invariant] : SolveStateInv.
+#[export] Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocalNamed; [eassumption | solve_state_invariant] : SolveStateInv.
+#[export] Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eassumption | solve_state_invariant] : SolveStateInv.
+#[export] Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocalNamed; [eassumption | solve_state_invariant] : SolveStateInv.
 
 Ltac get_gamma_bounds :=
   repeat match goal with

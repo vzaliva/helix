@@ -169,6 +169,16 @@ Definition addVars (newvars: list (ident * typ)): cerr unit :=
       Γ := newvars ++ Γ st
     |}.
 
+Definition appendVars (newvars: list (ident * typ)): cerr unit :=
+  st <- get ;;
+  put
+    {|
+      block_count := block_count st ;
+      local_count := local_count st ;
+      void_count  := void_count st ;
+      Γ := Γ st ++ newvars
+    |}.
+
 Definition newLocalVar (t:typ) (prefix:string): (cerr raw_id) :=
   st <- get ;;
   let v := Name (prefix @@ string_of_nat (local_count st)) in
@@ -626,15 +636,15 @@ Definition genBinOpBody
     py <- incLocal ;;
     v0 <- incLocal ;;
     v1 <- incLocal ;;
-    n' <- err2errS (MInt64asNT.from_nat n) ;;
     let xtyp := getIRType (DSHPtr i) in
-    let xptyp := TYPE_Pointer xtyp in
     let ytyp := getIRType (DSHPtr o) in
+    let xptyp := TYPE_Pointer xtyp in
     let yptyp := TYPE_Pointer ytyp in
     let loopvarid := ID_Local loopvar in
-    addVars [(ID_Local v1, TYPE_Double); (ID_Local v0, TYPE_Double); (loopvarid, IntType)] ;;
+    addVars [(ID_Local v1, TYPE_Double);
+             (ID_Local v0, TYPE_Double)] ;;
     '(fexpr, fexpcode) <- genAExpr f ;;
-    dropVars 3 ;;
+    dropVars 2 ;;
     ret (binopblock,
          [
            {|
@@ -703,7 +713,7 @@ Definition genMemMap2Body
            (nextblock: block_id)
   : cerr segment
   :=
-    binopblock <- incBlockNamed "MemMapTwoLoopBody" ;;
+    memmap2block <- incBlockNamed "MemMapTwoLoopBody" ;;
     storeid <- incVoid ;;
     px0 <- incLocal ;;
     px1 <- incLocal ;;
@@ -720,10 +730,10 @@ Definition genMemMap2Body
     addVars [(ID_Local v1, TYPE_Double); (ID_Local v0, TYPE_Double)] ;;
     '(fexpr, fexpcode) <- genAExpr f ;;
     dropVars 2 ;;
-    ret (binopblock,
+    ret (memmap2block,
          [
            {|
-             blk_id    := binopblock ;
+             blk_id    := memmap2block ;
              blk_phis  := [];
              blk_code  := [
                            (IId px0,  INSTR_Op (OP_GetElementPtr
@@ -943,7 +953,7 @@ Fixpoint genIR
             (genFSHAssign i o x y src_n dst_n nextblock)
         | DSHIMap n x_p y_p f =>
           (* the following check ensures loop bound fits integer. *)
-          _ <- err2errS (MInt64asNT.from_nat n) ;;
+          err2errS (MInt64asNT.from_nat n) ;;
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           loopcontblock <- incBlockNamed "IMap_lcont" ;;
@@ -953,19 +963,25 @@ Fixpoint genIR
           add_comment
             (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHBinOp n x_p y_p f =>
-          loopcontblock <- incBlockNamed "BinOp_lcont" ;;
+          (* the following check ensures loop bound fits integer. *)
+          (* [n+n] here because BinOp performs pointer aritmetic
+             for expressions [n+k, k ∈ [0,n]] (see [genBinOpBody]) *)
+          err2errS (MInt64asNT.from_nat (n + n)) ;;
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
-          loopvar <- incLocalNamed "BinOp_i" ;;
+          loopcontblock <- incBlockNamed "BinOp_lcont" ;;
+          loopvar <- newLocalVar IntType "BinOp_i" ;;
           '(body_entry, body_blocks) <- genBinOpBody i o n x y f loopvar loopcontblock ;;
+          dropVars 1 ;;
           add_comment
             (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHMemMap2 n x0_p x1_p y_p f =>
-          loopcontblock <- incBlockNamed "MemMapTwo_lcont" ;;
+          (* the following check ensures loop bound fits integer. *)
+          err2errS (MInt64asNT.from_nat n) ;;
           '(x0,i0) <- resolve_PVar x0_p ;;
           '(x1,i1) <- resolve_PVar x1_p ;;
           '(y,o) <- resolve_PVar y_p ;;
-          n' <- err2errS (MInt64asNT.from_nat n) ;;
+          loopcontblock <- incBlockNamed "MemMapTwo_lcont" ;;
           loopvar <- incLocalNamed "MemMapTwo_i" ;;
           '(body_entry, body_blocks) <- genMemMap2Body i0 i1 o x0 x1 y f loopvar loopcontblock ;;
           add_comment
@@ -977,7 +993,7 @@ Fixpoint genIR
             (genPower i o x y src_n dst_n n f initial nextblock)
         | DSHLoop n body =>
           (* the following check ensures loop bound fits integer. *)
-          _ <- err2errS (MInt64asNT.from_nat n) ;;
+          err2errS (MInt64asNT.from_nat n) ;;
           loopcontblock <- incBlockNamed "Loop_lcont" ;;
 
           loopvar <- newLocalVar IntType "Loop_i" ;;
@@ -1010,9 +1026,10 @@ Definition body_non_empty_cast (body : list (block typ)) : cerr (block typ * lis
   end.
 
 Definition LLVMGen
-           (i o: Int64.int)
-           (fshcol: DSHOperator)
-           (funname: string)
+  (i o: Int64.int)
+  x y
+  (fshcol: DSHOperator)
+  (funname: string)
   : cerr (toplevel_entities typ (block typ * list (block typ)))
   :=
     rid <- incBlock ;;
@@ -1033,9 +1050,7 @@ Definition LLVMGen
              ++ (List.map (TLE_Declaration) defined_intrinsics_decls)
     in
 
-    let x := Name "X" in
     let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
-    let y := Name "Y" in
     let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
 
     ret
@@ -1273,12 +1288,12 @@ Definition initIRGlobals
    When code genration generates [main], the input
    will be stored in pre-initialized [X] global placeholder variable.
  *)
-Definition initXYplaceholders (i o:Int64.int) (data:list binary64) x xtyp y ytyp:
+Definition initXYplaceholders (i o: Int64.int) (data:list binary64) x xtyp y ytyp:
   cerr (list binary64 * (LLVMAst.toplevel_entities _ (LLVMAst.block typ * list (LLVMAst.block typ))))
   :=
-    let '(data,ydata) := constArray (MInt64asNT.to_nat o) data in
+    let ydata := repeat (TYPE_Double, EXP_Double 0.0) (MInt64asNT.to_nat o) in
     let '(data,xdata) := constArray (MInt64asNT.to_nat i) data in
-    addVars [(ID_Global y, TYPE_Pointer ytyp); (ID_Global x, TYPE_Pointer xtyp)] ;;
+    appendVars [(ID_Global y, TYPE_Pointer ytyp); (ID_Global x, TYPE_Pointer xtyp)] ;;
     ret (data,[ TLE_Global
         {|
           g_ident        := y;
@@ -1317,7 +1332,7 @@ Definition initXYplaceholders (i o:Int64.int) (data:list binary64) x xtyp y ytyp
    global "x" and "y" as arguments. Returns "y". Pseudo-code:
 
    global float[i] x;
-   global float[y] y;
+   global float[o] y;
 
    float[o] main() {
         tmp = op_name(x,y);
@@ -1370,22 +1385,17 @@ Definition genMain
                                |}, [])
           |}].
 
-
-(* Drop 2 vars before the last 2 in Γ *)
-Definition dropFakeVars: cerr unit :=
+(* Drop the last 2 vars in Γ - corresponds to the operator's local vars *)
+Definition dropLocalVars: cerr unit :=
   st <- get ;;
   let l := List.length (Γ st) in
-  if Nat.ltb l 4 then raise "Γ too short"
+  if Nat.ltb l 2 then raise "Γ too short"
   else
-    '(globals, Γ') <- option2errS "Γ too short"
-                                 (ListUtil.split (Γ st) (l-4)) ;;
-    '(_, Γ'') <- option2errS "Γ too short"
-                            (ListUtil.split Γ' 2) ;;
     put {|
         block_count := block_count st ;
         local_count := local_count st ;
         void_count  := void_count st ;
-        Γ := (globals ++ Γ'')
+        Γ := firstn (l - 2) (Γ st)
       |}.
 
 Definition not_in_globals (g: list (string * DSHType)) (n:string) : bool
@@ -1418,19 +1428,47 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
          locals X=PVar 1, Y=PVar 0.
 
         We want them to be in `Γ` before globals *)
-        let x := Name "X" in
+        x <- incLocalNamed "X" ;;
         let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
-        let y := Name "Y" in
+        y <- incLocalNamed "Y" ;;
+        let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
+        addVars [(ID_Local y, ytyp);
+                 (ID_Local x, xtyp)] ;;
+        ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
+
+        (* Γ = [globals; y; x] *)
+        prog <- LLVMGen i o x y op name ;;
+        (* Γ = [globals; y; x] *)
+        ret (ginit ++ prog)
+      else
+
+        (* While generate operator's function body, add parameters as
+         locals X=PVar 1, Y=PVar 0.
+
+        We want them to be in `Γ` before globals *)
+        x <- incLocalNamed "X" ;;
+        let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
+        y <- incLocalNamed "Y" ;;
         let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
 
         addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
-        ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
+        (* Γ = [y; x] *)
 
-        (* Γ := [y; x; fake_y; fake_x] *)
-        prog <- LLVMGen i o op name ;;
-        ret (ginit ++ prog)
-      else
-        (* Global placeholders for X,Y *)
+        (* Global variables *)
+        '(data,ginit) <- initIRGlobals data globals ;;
+        (* Γ = [globals; y; x] *)
+
+        (* operator function *)
+        prog <- LLVMGen i o x y op name ;;
+        (* Γ = [globals; y; x] *)
+
+        (* After generation of operator function, we no longer need
+         [x] and [y] in [Γ]. *)
+        dropLocalVars ;;
+        (* Γ = [globals] *)
+
+        (* Global placeholders for X,Y.
+           These will be accessed by [main] and passed to the operator. *)
         let gx := Anon 0%Z in
         let gxtyp := getIRType (DSHPtr i) in
         let gxptyp := TYPE_Pointer gxtyp in
@@ -1440,34 +1478,11 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
         let gyptyp := TYPE_Pointer gytyp in
 
         '(data,yxinit) <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
-        (* Γ := [fake_y; fake_x] *)
-
-        (* While generate operator's function body, add parameters as
-         locals X=PVar 1, Y=PVar 0.
-
-        We want them to be in `Γ` before globals *)
-        let x := Name "X" in
-        let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
-        let y := Name "Y" in
-        let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
-
-        addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
-        (* Γ := [y; x; fake_y; fake_x] *)
-
-        (* Global variables *)
-        '(data,ginit) <- initIRGlobals data globals ;;
-        (* Γ := [globals; y; x; fake_y; fake_x] *)
-
-        (* operator function *)
-        prog <- LLVMGen i o op name ;;
-
-        (* After generation of operator function, we no longer need
-         [x] and [y] in [Γ]. *)
-
-        dropFakeVars ;;
+        (* Γ = [globals; fake_y; fake_x] *)
 
         (* Main function *)
         let main := genMain name gx gxptyp gy gytyp gyptyp in
+
         ret (ginit ++ yxinit ++ prog ++ main)
     else
       raise "invalid program name"

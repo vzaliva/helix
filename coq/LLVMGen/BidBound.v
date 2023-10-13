@@ -38,7 +38,7 @@ Section BidBound.
     unfold count_gen_injective.
     intros s1 s1' s2 s2' name1 name2 id1 id2 GEN1 GEN2 H1 H2 H3.
 
-    Transparent incBlockNamed.    
+    Transparent incBlockNamed.
     inv GEN1.
     inv GEN2.
     Opaque incBlockNamed.
@@ -367,7 +367,7 @@ Section BidBound.
 
 End BidBound.
 
-Hint Resolve incBlockNamed_count_gen_injective : CountGenInj.
+#[global] Hint Resolve incBlockNamed_count_gen_injective : CountGenInj.
 
 Ltac solve_bid_bound :=
   repeat
@@ -619,7 +619,7 @@ Opaque incBlockNamed.
 Opaque incVoid.
 Opaque incLocal.
 
-  
+
   Lemma outputs_bound_between :
     forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
       genIR op nextblock s1 ≡ inr (s2, (op_entry, bk_op)) ->
@@ -638,7 +638,7 @@ Opaque incLocal.
       rewrite fold_left_app.
       cbn.
       clean_goal.
-      
+
       assert (bid_bound_between s1 s2 b2) as B2.
       { eapply incBlockNamed_bound_between in Heqs3.
         eapply state_bound_between_shrink; eauto.
@@ -653,7 +653,7 @@ Opaque incLocal.
         solve_block_count.
         solve_block_count.
       }
-      
+
       rewrite outputs_acc.
       (* Can probably prove stuff for b2 and nextblock to save space *)
       rewrite Forall_app.
@@ -972,7 +972,7 @@ Proof.
         eapply bid_bound_name in H0; [lia | solve_prefix].
       - cbn in H0. destruct H0; inversion H0.
     }
-    
+
     unfold wf_ocfg_bid.
     rewrite inputs_app. cbn.
     apply Coqlib.list_norepet_append; eauto.
@@ -986,7 +986,7 @@ Proof.
     intros x y H0 H1.
 
     cbn in H1. destruct H1; inv H1.
-    
+
     rewrite inputs_convert_typ in H.
 
     eapply Forall_forall in H0; eauto.
@@ -1167,4 +1167,3 @@ Proof.
   rewrite add_comment_inputs, inputs_app.
   apply ListUtil.in_appl; eauto.
 Qed.
-

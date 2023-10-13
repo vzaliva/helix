@@ -34,104 +34,53 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
-Ltac interp_MF_ret := setoid_rewrite interp_Mem_ret; setoid_rewrite interp_fail_ret; cbn.
-Ltac interp_MF_bind := setoid_rewrite interp_Mem_bind; setoid_rewrite interp_fail_bind; cbn.
+(* TODO: straighten this dependency *)
+(* [DSHBinOp] and [DSHIMap] are similar, and a lot of the lemmas
+   (as well as general proof structure) should be shared. *)
+Require Import Helix.LLVMGen.Correctness_IMap.
 
-Ltac final := apply eqit_Ret; eauto.
-Ltac step :=
-  first [progress vred_E3 | vred_I3];
-  rewrite 1?interp_Mem_ret, 1?interp_fail_ret, 1?bind_ret_l;
-  rewrite 1?interp_Mem_bind, 1?interp_fail_bind, 1?bind_bind;
-  rewrite 1?interp_fail_throw, 1?bind_ret_l; cbn.
+Section DSHBinOp_is_tfor.
 
-Definition mem_eq :=
-      (fun (x y : option (memoryH * mem_block)) => match x, y with
-                  | Some (mH, m), Some (mH', m') => mH ≡ mH' /\ m = m'
-                  | None, None => True
-                  | _, _ => False end).
-
-Instance mem_eq_Equivalence : Equivalence mem_eq.
-Proof.
-  split.
-  - red. intros [ []| ]. red.
-    split; eauto. apply NM_Equiv_Reflexive.
-    red. auto.
-  - red. intros [ []| ] [ []| ]; red; cbn; intros []; auto.
-    split; auto. apply NM_Equiv_Symmetric. auto.
-  - red. intros [ []| ] [ []| ] [ []| ]; red; cbn; intros []; auto.
-    intros []. split. rewrite H. auto.
-    eapply NM_Equiv_Transitive; eauto.
-Qed.
-
-Lemma Returns_fail_throw :
-  forall T m x s, not (Returns (Some x) (interp_fail handle_failure (interp_Mem (T := T) (throw s) m))).
-Proof.
-  intros. intro abs.
-  setoid_rewrite interp_Mem_vis_eqit in abs.
-  unfold pure_state in *; cbn in *.
-  rewrite interp_fail_bind in abs.
-  rewrite interp_fail_vis in abs.
-  cbn in *.
-  rewrite Eq.bind_bind, !bind_ret_l in abs.
-  apply Returns_Ret in abs.
-  inversion abs.
-Qed.
-
-Lemma commut_gen :
-  forall {A : Type}
-    (QQ : A -> A -> Prop) `{Equivalence A QQ}
-    (t1 t2 : A -> itree void1 A) (m : A)
-    (ti1 ti2 : itree void1 A),
-    ti1 ≈ t1 m ->
-    ti2 ≈ t2 m ->
-    (eutt (fun m1' m2' => eutt QQ (t1 m1') (t2 m2')) (t2 m) (t1 m)) ->
-    (eutt (fun m1' m2' => eutt QQ (t2 m1') (t1 m2')) (t1 m) (t2 m)) ->
-    eutt QQ (a <- ti1 ;; t2 a) (a <- ti2  ;; t1 a).
-Proof.
-  intros. rewrite H0, H1. eapply eutt_clo_bind; eauto.
-Qed.
-
-Section DSHIMap_is_tfor.
-
-  (* Iterative body of [IMap] *)
-  Definition DSHIMap_body
+  (* Iterative body of [BinOp] *)
+  Definition DSHBinOp_body
              (σ : evalContext)
              (f : AExpr)
-             (offset : nat)
+             (n off : nat)
              (init acc : mem_block) : itree Event mem_block :=
-    v <- lift_Derr (mem_lookup_err "Error reading memory denoteDSHIMap" offset init);;
-    vn <- lift_Serr (MInt64asNT.from_nat offset);;
-    v'<- denoteIUnCType σ f vn v;;
-    ret (mem_add offset v' acc).
+    v0 <- lift_Derr (mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n init) ;;
+    v1 <- lift_Derr (mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n+off) init) ;;
+    vn <- lift_Serr (MInt64asNT.from_nat n) ;;
+    v' <- denoteIBinCType σ f vn v0 v1 ;;
+    ret (mem_add n v' acc).
 
-  (* [tfor] formulation of [DSHIMap].
+  (* [tfor] formulation of [DSHBinOp].
      "Reverse/downward" indexing ([n - 1 .. 0]). *)
-  Definition DSHIMap_tfor_down
+  Definition DSHBinOp_tfor_down
              (σ : evalContext)
              (f : AExpr)
-             (i n e: nat)
+             (i n off e: nat)
              (init acc : mem_block):
     itree Event mem_block :=
-    (* IMap has "reverse indexing" on its body *)
-    tfor (fun i acc => DSHIMap_body σ f (e - 1 - i) init acc) i n acc.
+    (* BinOp has "reverse indexing" on its body *)
+    tfor (fun i acc => DSHBinOp_body σ f (e - 1 - i) off init acc) i n acc.
 
   (* "Right"-side-up indexing variant ([0 .. n - 1]). *)
-  Definition DSHIMap_tfor_up
+  Definition DSHBinOp_tfor_up
              (σ : evalContext)
              (f : AExpr)
-             (i n : nat)
+             (i n off : nat)
              (init acc : mem_block):
     itree Event mem_block :=
-    tfor (fun i acc => DSHIMap_body σ f i init acc) i n acc.
+    tfor (fun i acc => DSHBinOp_body σ f i off init acc) i n acc.
 
-  (* [denoteDSHIMap] is equivalent to [tfor] with "reverse indexing" on an
-     [IMap] body. *)
-  Lemma denoteDSHIMap_as_tfor:
-    forall (σ : evalContext) n f x y,
-      denoteDSHIMap n f σ x y ≈ DSHIMap_tfor_down σ f 0 n n x y.
+  (* [denoteDSHBinOp] is equivalent to [tfor] with "reverse indexing" on an
+     [BinOp] body. *)
+  Lemma denoteDSHBinOp_as_tfor:
+    forall (σ : evalContext) n off f x y,
+      denoteDSHBinOp n off f σ x y ≈ DSHBinOp_tfor_down σ f 0 n off n x y.
   Proof.
     intros.
-    unfold DSHIMap_tfor_down. revert y.
+    unfold DSHBinOp_tfor_down. revert y.
     induction n.
     - cbn. intros.
       setoid_rewrite tfor_0.
@@ -141,12 +90,8 @@ Section DSHIMap_is_tfor.
       assert (S n - 1 - 0 ≡ n) by lia. rewrite H. cbn.
       repeat setoid_rewrite bind_bind.
       cbn.
-      eapply eutt_clo_bind; [reflexivity|].
-      intros u1 u2 H'.
-      eapply eutt_clo_bind; [reflexivity|].
-      intros u0 u3 H''. subst.
-      eapply eutt_clo_bind; [reflexivity|].
-      intros; subst. rewrite bind_ret_l.
+      do 4 (eapply eutt_clo_bind; [reflexivity | intros; subst]).
+      rewrite bind_ret_l.
       rewrite IHn.
 
       setoid_rewrite tfor_ss_dep. 3 : lia.
@@ -155,15 +100,15 @@ Section DSHIMap_is_tfor.
   Qed.
 
   Lemma swap_body_interp:
-    forall (n n' : nat) (σ : evalContext) (f : AExpr) (x : mem_block) mH init,
+    forall (n n' off : nat) (σ : evalContext) (f : AExpr) (x : mem_block) mH init,
     eutt (E := E_cfg) mem_eq
-            (interp_helix (a <- DSHIMap_body σ f n x init ;; DSHIMap_body σ f n' x a) mH)
-            (interp_helix (a <- DSHIMap_body σ f n' x init ;; DSHIMap_body σ f n x a) mH).
+            (interp_helix (a <- DSHBinOp_body σ f n off x init ;; DSHBinOp_body σ f n' off x a) mH)
+            (interp_helix (a <- DSHBinOp_body σ f n' off x init ;; DSHBinOp_body σ f n off x a) mH).
   Proof.
     intros *.
 
     eapply eutt_translate_gen.
-    Transparent DSHIMap_body.
+    Transparent DSHBinOp_body.
     cbn.
     do 2 rewrite interp_Mem_bind.
     do 2 rewrite interp_fail_bind.
@@ -203,11 +148,14 @@ Section DSHIMap_is_tfor.
       unfold lift_Derr.
       break_match. break_match.
       - Unshelve.
-        2 : { exact (fun l r =>
-                       ((exists s, mem_lookup_err "Error reading memory denoteDSHIMap" n' x ≡ inl s /\ l ≡ None) \/
-                       (exists b, mem_lookup_err "Error reading memory denoteDSHIMap" n' x ≡ inr b /\ l ≡ Some (mH, b))) /\
-                       ((exists s, mem_lookup_err "Error reading memory denoteDSHIMap" n x ≡ inl s /\ r ≡ None) \/
-                        (exists b, mem_lookup_err "Error reading memory denoteDSHIMap" n x ≡ inr b /\ r ≡ Some (mH, b)))). }
+        2 : {
+          exact
+            (fun l r =>
+               ((exists s, mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n' x ≡ inl s /\ l ≡ None)
+                \/ (exists b, mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n' x ≡ inr b /\ l ≡ Some (mH, b)))
+               /\
+                 ((exists s, mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n x ≡ inl s /\ r ≡ None)
+                  \/ (exists b, mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n x ≡ inr b /\ r ≡ Some (mH, b)))). }
 
         setoid_rewrite interp_Mem_vis_eqit.
         unfold pure_state in *; cbn in *.
@@ -225,100 +173,222 @@ Section DSHIMap_is_tfor.
         break_match; step; final; split; eauto.
       (* EUTT_CLO_BIND continuation *)
       - intros. cbn in H.
-        destruct H; destruct H, H2; destruct H as (? & ? & ?); destruct H2 as (? & ? & ?).
-        + subst. final. final.
-        + subst. cbn.
+        destruct H; destruct H, H2;
+          destruct H as (? & ? & ?); destruct H2 as (? & ? & ?).
+        + (* 1st lookup: [None | None] *)
+          subst. final. final.
+        + (* 1st lookup: [None | Some] *)
+          subst. cbn.
           unfold lift_Serr.
-          destruct (MInt64asNT.from_nat n) eqn: Heqn.
-          cbn. step. final. final. do 3 step.
-          unfold denoteIUnCType. step.
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA.
-          step. final. final.
-          do 2 step. final. step. rewrite H. repeat step. final.
-
-        + subst. cbn.
-          unfold lift_Serr.
-          destruct (MInt64asNT.from_nat n') eqn: Heqn.
-          cbn. step. final. final.
-          unfold denoteIUnCType. repeat step.
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA.
-          step. final. final. do 2 step. final.
-          rewrite H2. repeat step. final.
-
-        + subst. cbn.
-          unfold lift_Serr.
-          destruct (MInt64asNT.from_nat n') eqn: Heqn';
+          match goal with
+          | |- context [mem_lookup_err ?e (_ + ?off) ?x] =>
+              destruct (mem_lookup_err e (n + off) x) eqn:ML2
+          end.
+          * (* 2nd lookup [None | ] *)
+            cbn. step. final. final.
+          * (* 2nd lookup [Some | ] *)
+            cbn.
+            step.
             destruct (MInt64asNT.from_nat n) eqn: Heqn.
-          do 2 step. final. final.
-          do 4 step.
-          unfold denoteIUnCType.
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA.
-          do 2 step. final. final.
-          do 3 step. final.
+            ** (* offset1 bad *)
+              cbn. step. final. final.
+            ** (* offset1 ok *)
+              do 3 step.
+              unfold denoteIBinCType. step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final.
+              do 2 step. final. step. rewrite H. repeat step. final.
+        + (* 1st lookup: [Some | None] *)
+          subst. cbn.
+          unfold lift_Serr.
+          match goal with
+          | |- context [mem_lookup_err ?e (_ + ?off) ?x] =>
+              destruct (mem_lookup_err e (n' + off) x) eqn:ML2
+          end.
+          * (* 2nd lookup [None | ] *)
+            cbn. step. final. final.
+          * (* 2nd lookup [Some | ] *)
+            cbn.
+            step.
+            destruct (MInt64asNT.from_nat n') eqn: Heqn.
+            ** (* offset1 bad *)
+              cbn. step. final. final.
+            ** (* offset1 ok *)
+              do 3 step.
+              unfold denoteIBinCType. step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final.
+              do 2 step. final. step. rewrite H2. repeat step. final.
+        + (* 1st lookup: [Some | Some] *)
+          subst. cbn.
 
-          step. rewrite H. do 3 step. final.
-          do 3 step.
+          hred. vred. vred.
+          do 2 step.
+          (* *)
+          eapply eutt_clo_bind_returns.
+          
+          unfold lift_Derr.
+          break_match. break_match.
 
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA.
-          step. final. final. do 2 step. final.
-          step. rewrite H2.
-          repeat step. final.
-          repeat step.
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA;
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA' | (? & HA')];
-          setoid_rewrite HA'.
-          step. final. final.
-          repeat step. final.
-          rewrite H. repeat step.
-          rewrite HA. step. final.
-          rewrite H2. repeat step. final.
-          repeat step. setoid_rewrite HA'. repeat step. final.
-          repeat step. final. repeat step.
-          rewrite H, H2. repeat step.
-          rewrite HA, HA'. repeat step. final.
-          split; auto.
-        destruct (Nat.eq_dec n n'). subst.
-        * rewrite Heqn' in Heqn. inv Heqn.
-          rewrite H in H2. inv H2.
-          setoid_rewrite HA in HA'. apply eqit_inv in HA'.
-          inv HA'. reflexivity.
-        * red. intros.
-          pose proof @mem_lookup_mem_add_eq.
-          pose proof @mem_lookup_mem_add_neq.
-          unfold mem_lookup in *.
-          destruct (Nat.eq_dec k n).
-         --- subst. rewrite H3.
-              rewrite H4. rewrite H3. cbn. f_equiv.
-              auto.
-         --- rewrite H4; auto.
-              destruct (Nat.eq_dec k n').
-              subst.
-              rewrite H3. rewrite H3. f_equiv.
-              rewrite H4. rewrite H4. rewrite H4.
-              f_equiv. f_equiv. repeat red. reflexivity. auto. auto . auto.
+          *
+            Unshelve.
+            2: {
+              exact
+                (fun l r =>
+                   ((exists s, mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n' + off) x ≡ inl s /\ l ≡ None)
+                    \/ (exists b, mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n' + off) x ≡ inr b /\ l ≡ Some (mH, b)))
+                   /\
+                     ((exists s, mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n + off) x ≡ inl s /\ r ≡ None)
+                      \/ (exists b, mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n + off) x ≡ inr b /\ r ≡ Some (mH, b)))). }
+
+            setoid_rewrite interp_Mem_vis_eqit.
+            unfold pure_state in *; cbn in *.
+            rewrite !interp_fail_bind.
+            rewrite !interp_fail_vis.
+            cbn in *. step. final.
+            split; eauto.
+          *
+            setoid_rewrite interp_Mem_vis_eqit.
+            unfold pure_state in *; cbn in *.
+            rewrite !interp_fail_bind.
+            rewrite !interp_fail_vis.
+            cbn in *. step. final.
+            split; eauto.
+          *
+            step. step.
+            break_match; step; final; split; eauto.
+          *
+            rename H into H', H2 into H2', H0 into H0', H1 into H1'.
+            intros. cbn in H.
+            destruct H; destruct H, H2;
+              destruct H as (? & ? & ?); destruct H2 as (? & ? & ?).
+            {
+              subst. final. final.
+            }
+            
+            {
+              subst. cbn.
+              unfold lift_Serr.
+              destruct (MInt64asNT.from_nat n) eqn: Heqn.
+              cbn. step. final. final.
+              do 3 step.
+              unfold denoteIUnCType. step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final.
+              do 2 step. final. step. rewrite H, H'. repeat step.
+              final.
+            }
+
+            {
+              subst. cbn.
+              unfold lift_Serr.
+              destruct (MInt64asNT.from_nat n') eqn: Heqn.
+              cbn. step. final. final.
+              do 3 step.
+              unfold denoteIUnCType. step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final.
+              do 2 step. final. step. rewrite H2, H2'. repeat step.
+              final.
+            }
+
+            {
+              subst. cbn.
+              unfold lift_Serr.
+              destruct (MInt64asNT.from_nat n') eqn: Heqn';
+                destruct (MInt64asNT.from_nat n) eqn: Heqn.
+              do 2 step. final. final.
+              do 4 step.
+              unfold denoteIBinCType.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              do 2 step. final. final.
+              do 3 step. final.
+              
+              step. rewrite H, H'. repeat step. final.
+              do 3 step.
+              
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final. do 2 step. final.
+              step. rewrite H2, H2'.
+              repeat step. final.
+              repeat step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA
+              ;
+                edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA' | (? & HA')];
+                setoid_rewrite HA'.
+              step. final. final.
+              repeat step. final.
+              rewrite H, H'. repeat step.
+              rewrite HA. step. final.
+              rewrite H2, H2'. repeat step. final.
+              repeat step. setoid_rewrite HA'. repeat step. final.
+              repeat step. final. repeat step.
+              rewrite H, H2, H', H2'. repeat step.
+              rewrite HA, HA'. repeat step. final.
+              split; auto.
+              destruct (Nat.eq_dec n n'). subst.
+              - rewrite Heqn' in Heqn. inv Heqn.
+                rewrite H in H2. inv H2.
+                rewrite H' in H2'. inv H2'.
+                setoid_rewrite HA in HA'. apply eqit_inv in HA'.
+                inv HA'. reflexivity.
+              - red. intros.
+                pose proof @mem_lookup_mem_add_eq.
+                pose proof @mem_lookup_mem_add_neq.
+                unfold mem_lookup in *.
+                destruct (Nat.eq_dec k n).
+                + subst. rewrite H3.
+                  rewrite H4. rewrite H3. cbn. f_equiv.
+                  auto.
+                + rewrite H4; auto.
+                  destruct (Nat.eq_dec k n').
+                  subst.
+                  rewrite H3. rewrite H3. f_equiv.
+                  rewrite H4. rewrite H4. rewrite H4.
+                  f_equiv. f_equiv. repeat red. reflexivity. auto. auto . auto.
+            }
     }
+    
     {
-
       Import ProofMode. cbn.
       hred. vred. vred.
-
-      rewrite! interp_Mem_bind.
-      rewrite! interp_fail_bind.
+      do 2 step.
       eapply eutt_clo_bind_returns.
 
       unfold lift_Derr.
       break_match. break_match.
       - Unshelve.
-        2 : { exact (fun l r =>
-                       ((exists s, mem_lookup_err "Error reading memory denoteDSHIMap" n x ≡ inl s /\ l ≡ None) \/
-                       (exists b, mem_lookup_err "Error reading memory denoteDSHIMap" n x ≡ inr b /\ l ≡ Some (mH, b))) /\
-                       ((exists s, mem_lookup_err "Error reading memory denoteDSHIMap" n' x ≡ inl s /\ r ≡ None) \/
-                        (exists b, mem_lookup_err "Error reading memory denoteDSHIMap" n' x ≡ inr b /\ r ≡ Some (mH, b)))). }
+        2 : {
+          exact
+            (fun l r =>
+               ((exists s, mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n x ≡ inl s /\ l ≡ None)
+                \/ (exists b, mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n x ≡ inr b /\ l ≡ Some (mH, b)))
+               /\
+                 ((exists s, mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n' x ≡ inl s /\ r ≡ None)
+                  \/ (exists b, mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n' x ≡ inr b /\ r ≡ Some (mH, b)))). }
 
         setoid_rewrite interp_Mem_vis_eqit.
         unfold pure_state in *; cbn in *.
@@ -336,82 +406,213 @@ Section DSHIMap_is_tfor.
         break_match; step; final; split; eauto.
       (* EUTT_CLO_BIND continuation *)
       - intros. cbn in H.
-        destruct H; destruct H, H2; destruct H as (? & ? & ?); destruct H2 as (? & ? & ?).
-        + subst. final. final.
-        + subst. cbn.
+        destruct H; destruct H, H2;
+          destruct H as (? & ? & ?); destruct H2 as (? & ? & ?).
+        + (* 1st lookup: [None | None] *)
+          subst. final. final.
+        + (* 1st lookup: [None | Some] *)
+          subst. cbn.
           unfold lift_Serr.
-          destruct (MInt64asNT.from_nat n') eqn: Heqn.
-          cbn. step. final. final. do 3 step.
-          unfold denoteIUnCType. step.
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA.
-          step. final. final.
-          do 2 step. final. step. rewrite H. repeat step. final.
-
-        + subst. cbn.
-          unfold lift_Serr.
-          destruct (MInt64asNT.from_nat n) eqn: Heqn.
-          cbn. step. final. final.
-          unfold denoteIUnCType. repeat step.
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA.
-          step. final. final. do 2 step. final.
-          rewrite H2. repeat step. final.
-
-        + subst. cbn.
-          unfold lift_Serr.
-          destruct (MInt64asNT.from_nat n) eqn: Heqn';
+          match goal with
+          | |- context [mem_lookup_err ?e (_ + ?off) ?x] =>
+              destruct (mem_lookup_err e (n' + off) x) eqn:ML2
+          end.
+          * (* 2nd lookup [None | ] *)
+            cbn. step. final. final.
+          * (* 2nd lookup [Some | ] *)
+            cbn.
+            step.
             destruct (MInt64asNT.from_nat n') eqn: Heqn.
-          do 2 step. final. final.
-          do 4 step.
-          unfold denoteIUnCType.
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA.
-          do 2 step. final. final.
-          do 3 step. final.
+            ** (* offset1 bad *)
+              cbn. step. final. final.
+            ** (* offset1 ok *)
+              do 3 step.
+              unfold denoteIBinCType. step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final.
+              do 2 step. final. step. rewrite H. repeat step. final.
+        + (* 1st lookup: [Some | None] *)
+          subst. cbn.
+          unfold lift_Serr.
+          match goal with
+          | |- context [mem_lookup_err ?e (_ + ?off) ?x] =>
+              destruct (mem_lookup_err e (n + off) x) eqn:ML2
+          end.
+          * (* 2nd lookup [None | ] *)
+            cbn. step. final. final.
+          * (* 2nd lookup [Some | ] *)
+            cbn.
+            step.
+            destruct (MInt64asNT.from_nat n) eqn: Heqn.
+            ** (* offset1 bad *)
+              cbn. step. final. final.
+            ** (* offset1 ok *)
+              do 3 step.
+              unfold denoteIBinCType. step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final.
+              do 2 step. final. step. rewrite H2. repeat step. final.
+        + (* 1st lookup: [Some | Some] *)
+          subst. cbn.
 
-          step. rewrite H. do 3 step. final.
-          do 3 step.
+          hred. vred. vred.
+          do 2 step.
+          (* *)
+          eapply eutt_clo_bind_returns.
+          
+          unfold lift_Derr.
+          break_match. break_match.
 
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA.
-          step. final. final. do 2 step. final.
-          step. rewrite H2.
-          repeat step. final.
-          repeat step.
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA;
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA' | (? & HA')];
-          setoid_rewrite HA'.
-          step. final. final.
-          repeat step. final.
-          rewrite H. repeat step.
-          rewrite HA. step. final.
-          rewrite H2. repeat step. final.
-          repeat step. setoid_rewrite HA'. repeat step. final.
-          repeat step. final. repeat step.
-          rewrite H, H2. repeat step.
-          rewrite HA, HA'. repeat step. final.
-          split; auto.
-        destruct (Nat.eq_dec n n'). subst.
-        * rewrite Heqn' in Heqn. inv Heqn.
-          rewrite H in H2. inv H2.
-          setoid_rewrite HA in HA'. apply eqit_inv in HA'.
-          inv HA'. reflexivity.
-        * red. intros.
-          pose proof @mem_lookup_mem_add_eq.
-          pose proof @mem_lookup_mem_add_neq.
-          unfold mem_lookup in *.
-          destruct (Nat.eq_dec k n').
-         --- subst. rewrite H3.
-              rewrite H4. rewrite H3. cbn. f_equiv.
-              auto.
-         --- rewrite H4; auto.
-              destruct (Nat.eq_dec k n).
-              subst.
-              rewrite H3. rewrite H3. f_equiv.
-              rewrite H4. rewrite H4. rewrite H4.
-              f_equiv. f_equiv. repeat red. reflexivity. auto. auto . auto.
+          *
+            Unshelve.
+            2: {
+              exact
+                (fun l r =>
+                   ((exists s, mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n + off) x ≡ inl s /\ l ≡ None)
+                    \/ (exists b, mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n + off) x ≡ inr b /\ l ≡ Some (mH, b)))
+                   /\
+                     ((exists s, mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n' + off) x ≡ inl s /\ r ≡ None)
+                      \/ (exists b, mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n' + off) x ≡ inr b /\ r ≡ Some (mH, b)))). }
+
+            setoid_rewrite interp_Mem_vis_eqit.
+            unfold pure_state in *; cbn in *.
+            rewrite !interp_fail_bind.
+            rewrite !interp_fail_vis.
+            cbn in *. step. final.
+            split; eauto.
+          *
+            setoid_rewrite interp_Mem_vis_eqit.
+            unfold pure_state in *; cbn in *.
+            rewrite !interp_fail_bind.
+            rewrite !interp_fail_vis.
+            cbn in *. step. final.
+            split; eauto.
+          *
+            step. step.
+            break_match; step; final; split; eauto.
+          *
+            rename H into H', H2 into H2', H0 into H0', H1 into H1'.
+            intros. cbn in H.
+            destruct H; destruct H, H2;
+              destruct H as (? & ? & ?); destruct H2 as (? & ? & ?).
+            {
+              subst. final. final.
+            }
+            
+            {
+              subst. cbn.
+              unfold lift_Serr.
+              destruct (MInt64asNT.from_nat n') eqn: Heqn.
+              cbn. step. final. final.
+              do 3 step.
+              unfold denoteIUnCType. step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final.
+              do 2 step. final. step. rewrite H, H'. repeat step.
+              final.
+            }
+
+            {
+              subst. cbn.
+              unfold lift_Serr.
+              destruct (MInt64asNT.from_nat n) eqn: Heqn.
+              cbn. step. final. final.
+              do 3 step.
+              unfold denoteIUnCType. step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final.
+              do 2 step. final. step. rewrite H2, H2'. repeat step.
+              final.
+            }
+
+            {
+              subst. cbn.
+              unfold lift_Serr.
+              destruct (MInt64asNT.from_nat n') eqn: Heqn';
+                destruct (MInt64asNT.from_nat n) eqn: Heqn.
+              do 2 step. final. final.
+              do 4 step.
+              unfold denoteIBinCType.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              do 2 step. final. final.
+              do 3 step. final.
+              
+              step. rewrite H2, H2'. repeat step. final.
+              do 3 step.
+              
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final. do 2 step. final.
+              step. rewrite H, H'.
+              repeat step. final.
+              repeat step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA
+              ;
+                edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA' | (? & HA')];
+                setoid_rewrite HA'.
+              step. final. final.
+              repeat step. final.
+              rewrite H, H'. repeat step.
+              rewrite HA. step. final.
+              rewrite H2, H2'. repeat step. final.
+              repeat step. setoid_rewrite HA'. repeat step. final.
+              repeat step. final. repeat step.
+              rewrite H, H2, H', H2'. repeat step.
+              rewrite HA, HA'. repeat step. final.
+              split; auto.
+              destruct (Nat.eq_dec n n'). subst.
+              - rewrite Heqn' in Heqn. inv Heqn.
+                rewrite H' in H2'. inv H2'.
+                rewrite H in H2. inv H2.
+                setoid_rewrite HA in HA'. apply eqit_inv in HA'.
+                inv HA'. reflexivity.
+              - red. intros.
+                pose proof @mem_lookup_mem_add_eq.
+                pose proof @mem_lookup_mem_add_neq.
+                unfold mem_lookup in *.
+                destruct (Nat.eq_dec k n).
+                + subst. rewrite H3.
+                  rewrite H4. rewrite H3. cbn. f_equiv.
+                  auto.
+                +
+                  match goal with
+                  | |- ?x = ?y =>
+                      enough (y = x);
+                      [generalize dependent y; generalize dependent x |]
+                  end.
+                  {
+                    clear; intros x y E.
+                    destruct x, y; invc E; now repeat constructor.
+                  }
+                  rewrite H4; auto.
+                  destruct (Nat.eq_dec k n').
+                  subst.
+                  rewrite H3. rewrite H3. f_equiv.
+                  rewrite H4. rewrite H4. rewrite H4.
+                  f_equiv. f_equiv. repeat red. reflexivity. auto. auto . auto.
+            }
     }
 
     {
@@ -425,15 +626,15 @@ Section DSHIMap_is_tfor.
   Qed.
 
   Lemma eq_rev_interp :
-      forall σ f n x y memH,
+      forall σ f n off x y memH,
         eutt mem_eq
-          (interp_helix (E := E_cfg) (DSHIMap_tfor_up σ f 0 n x y) memH)
-        (interp_helix (E := E_cfg) (DSHIMap_tfor_down σ f 0 n n x y) memH).
+          (interp_helix (E := E_cfg) (DSHBinOp_tfor_up σ f 0 n off x y) memH)
+        (interp_helix (E := E_cfg) (DSHBinOp_tfor_down σ f 0 n off n x y) memH).
     Proof.
-      unfold DSHIMap_tfor_up, DSHIMap_tfor_down.
+      unfold DSHBinOp_tfor_up, DSHBinOp_tfor_down.
       intros.
       revert σ f x y memH.
-      Opaque DSHIMap_body.
+      Opaque DSHBinOp_body.
       induction n. intros. cbn.
       - rewrite! tfor_0. reflexivity.
       - intros. setoid_rewrite tfor_unroll at 2.
@@ -448,7 +649,7 @@ Section DSHIMap_is_tfor.
           setoid_rewrite tfor_ss_dep at 2. 3 : lia.
           2 : {
             intros. Unshelve.
-            3 : { exact (fun i x0 => DSHIMap_body σ f (n - 1 - i) x x0). }
+            3 : { exact (fun i x0 => DSHBinOp_body σ f (n - 1 - i) off x x0). }
             cbn.
             assert (EQ : n - S i ≡ n - 1 - i) by lia; rewrite EQ; clear EQ.
             reflexivity.
@@ -459,7 +660,8 @@ Section DSHIMap_is_tfor.
           2 : exact (fun a =>
               match a with
               | Some (m1, m2) =>
-                interp_helix (tfor (λ (i : nat) (acc : mem_block), DSHIMap_body σ f i x acc) 0 n m2) m1
+                  interp_helix (tfor (λ (i : nat) (acc : mem_block),
+                                    DSHBinOp_body σ f i off x acc) 0 n m2) m1
               | None => Ret None
               end).
           cbn. reflexivity.
@@ -477,7 +679,7 @@ Section DSHIMap_is_tfor.
           2 : lia. Unshelve.
           3 : exact (fun a =>
               match a with
-              | Some (m1, m2) => interp_helix (DSHIMap_body σ f n x m2) m1
+              | Some (m1, m2) => interp_helix (DSHBinOp_body σ f n off x m2) m1
               | None => Ret None
               end).
           cbn. reflexivity.
@@ -486,7 +688,7 @@ Section DSHIMap_is_tfor.
         cbn.
 
         remember n.
-        remember (λ x0 : mem_block, DSHIMap_body σ f n0 x x0).
+        remember (λ x0 : mem_block, DSHBinOp_body σ f n0 off x x0).
         rewrite Heqn0. clear Heqn0. subst.
         revert x y n0.
         induction n.
@@ -519,14 +721,14 @@ Section DSHIMap_is_tfor.
             Unshelve.
             7 : exact (fun a =>
                 match a with
-                | Some (m1, m2) => interp_helix (DSHIMap_body σ f n x m2) m1
+                | Some (m1, m2) => interp_helix (DSHBinOp_body σ f n off x m2) m1
                 | None => Ret None
                 end).
             cbn. reflexivity. cbn. reflexivity.
             intros [[]|] [[]|] EQ; inv EQ.
             3 : exact (fun a =>
                 match a with
-                | Some (m1, m2) => interp_helix (DSHIMap_body σ f n0 x m2) m1
+                | Some (m1, m2) => interp_helix (DSHBinOp_body σ f n0 off x m2) m1
                 | None => Ret None
                 end).
             1, 2 : cbn ; reflexivity.
@@ -543,8 +745,8 @@ Section DSHIMap_is_tfor.
             3 : exact (fun a =>
                 match a with
                 | Some (m1, m2) =>
-                    '(m3, m4) <- interp_helix (tfor (λ (i : nat) (acc : mem_block), DSHIMap_body σ f i x acc) 0 n m2 ) m1 ;;
-                      interp_helix (DSHIMap_body σ f n x m4) m3
+                    '(m3, m4) <- interp_helix (tfor (λ (i : nat) (acc : mem_block), DSHBinOp_body σ f i off x acc) 0 n m2 ) m1 ;;
+                      interp_helix (DSHBinOp_body σ f n off x m4) m3
                 | None => Ret None
                 end).
             cbn.
@@ -568,8 +770,8 @@ Section DSHIMap_is_tfor.
                 (fun a =>
                   match a with
                   | Some (m1, m2) =>
-                    (interp_helix (ITree.subst (DSHIMap_body σ f n x)
-                            (tfor (fun (i : nat) (acc : mem_block) => DSHIMap_body σ f i x acc) O n m2)) m1)
+                    (interp_helix (ITree.subst (DSHBinOp_body σ f n off x)
+                            (tfor (fun (i : nat) (acc : mem_block) => DSHBinOp_body σ f i off x acc) O n m2)) m1)
                   | None => Ret None
                   end).
             }
@@ -589,14 +791,18 @@ Section DSHIMap_is_tfor.
             intros [[]|] [[]|] EQ; inv EQ.
             Unshelve.
             3 :  exact (fun r => match r with
-                              | Some (m1, m0) => interp_helix (DSHIMap_body σ f n x m0) m1
+                              | Some (m1, m0) => interp_helix (DSHBinOp_body σ f n off x m0) m1
                               | None => Ret None
                               end).
             cbn.
-            Transparent DSHIMap_body.
-            unfold DSHIMap_body. cbn.
+            Transparent DSHBinOp_body.
+            unfold DSHBinOp_body. cbn.
             rewrite! interp_helix_bind.
             eapply eutt_clo_bind.  reflexivity.
+            intros [[]|] [[]|] EQ'; inv EQ'; try reflexivity. cbn in *.
+            rewrite! interp_helix_bind.
+            eapply eutt_clo_bind.  reflexivity.
+
             intros [[]|] [[]|] EQ'; inv EQ'; try reflexivity. cbn in *.
             rewrite! interp_helix_bind.
             eapply eutt_clo_bind.  reflexivity.
@@ -625,20 +831,20 @@ Section DSHIMap_is_tfor.
           eapply swap_body_interp.
     Qed.
 
-  Lemma DSHIMap_eq_ret :
-    forall σ f n x y memH,
-      no_failure (E := E_cfg) (interp_helix (DSHIMap_body σ f n x y) memH) ->
-      exists b, interp_helix (E := E_cfg) (DSHIMap_body σ f n x y) memH ≈ interp_helix (Ret b) memH.
+  Lemma DSHBinOp_eq_ret :
+    forall σ f n off x y memH,
+      no_failure (E := E_cfg) (interp_helix (DSHBinOp_body σ f n off x y) memH) ->
+      exists b, interp_helix (E := E_cfg) (DSHBinOp_body σ f n off x y) memH ≈ interp_helix (Ret b) memH.
   Proof.
     intros.
-    Transparent DSHIMap_body. cbn* in *; simp; try_abs.
+    Transparent DSHBinOp_body. cbn* in *; simp; try_abs.
 
     pose proof @genAExpr_correct_helix_pure.
     edestruct H0. rewrite! bind_ret_l in H.
     apply no_failure_helix_bind_prefix in H. eauto.
     eexists.
     eapply eutt_translate_gen.
-    unfold denoteIUnCType.
+    unfold denoteIBinCType.
     rename H1 into N_DENOTE.
     hred.
     rewrite interp_Mem_bind.
@@ -647,25 +853,24 @@ Section DSHIMap_is_tfor.
     hred. reflexivity.
   Qed.
 
-  Transparent DSHIMap_body.
+  Transparent DSHBinOp_body.
 
-
-  Lemma DSHIMap_interpreted_as_tfor:
-    forall σ (n : nat) (m : memoryH) f
+  Lemma DSHBinOp_interpreted_as_tfor:
+    forall σ (n off : nat) (m : memoryH) f
       (init acc : mem_block),
       eutt (mem_eq)
-           (interp_helix (E := E_cfg) (denoteDSHIMap n f σ init acc) m)
+           (interp_helix (E := E_cfg) (denoteDSHBinOp n off f σ init acc) m)
             (tfor (fun k x' =>
                     match x' with
                     | None => Ret None
-                    | Some (m', acc) => interp_helix (DSHIMap_body σ f k init acc) m'
+                    | Some (m', acc) => interp_helix (DSHBinOp_body σ f k off init acc) m'
                     end)
               0 n (Some (m, acc))).
   Proof.
     intros.
-    rewrite denoteDSHIMap_as_tfor.
+    rewrite denoteDSHBinOp_as_tfor.
     rewrite <- eq_rev_interp.
-    unfold DSHIMap_tfor_up.
+    unfold DSHBinOp_tfor_up.
     rewrite interp_helix_tfor; [|lia].
     cbn.
     eapply eutt_Proper_mono; cycle 1.
@@ -681,101 +886,26 @@ Section DSHIMap_is_tfor.
   Qed.
 
 
-End DSHIMap_is_tfor.
+End DSHBinOp_is_tfor.
+
 
 Import AlistNotations.
 
-Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsize : nat) (ptr_llvm : addr)
-            (bk_helix : mem_block) (x : ident) sz : Prop :=
-    let '(mem_llvm, (ρ, g)) := configV in
-    dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] (TYPE_Array sz TYPE_Double)) /\
-    in_local_or_global_addr ρ g x ptr_llvm /\
-            (∀ (i : Int64.int) (v0 : binary64),
-                (MInt64asNT.to_nat i) < index \/ (MInt64asNT.to_nat i) >= loopsize ->
-                  (mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
-                    → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0))).
-
 (** ** Simplified High-level Proof Overview
-
-    Source language has an "fmap" operator (called IMap)
-    Target language is a cfg-based language (i.e. each node is a basic block
-        with jump targets)
-
-                    |-------------------------------------------------|
-          Given     | compile (IMap (n, x_p, y_p, f))   ≡   blocks    |
-                    |-------------------------------------------------|
-
-  *****************************************************************************
-  ### Correctness Proof (each row is a proof step)
-  *****************************************************************************
-
-  (* Assume no failure at the source code *)
-  NOFAIL : no_failure (⟦ IMap (n, x_p, y_p, f) ⟧ mH)
-
-  (* Pre-condition is a Coq Prop           *)
-  PRECONDITION : {{ state_invariant mH mV  }}
-
-  (* Post-condition is a relation on returned states *)
-  Q := {{ ∀ mH' mV' id, state_invariant mH' mV' ∧ branches_to id }}
-  =============================================================================
-            HELIX (src)                               |     VIR (trg)    | Post
-  ----------------------------------------------------|------------------|-----
-                                                      |                  |
-     ⟦ IMap (n, x_p, y_p, f) ⟧  mH                    ≈   ⟦ blocks ⟧ mV  |  Q
-                                                      |                  |
-  -----# REWRITE denoteDSHIMap_as_tfor #--------------|--------- --------|-----
-                                                      |                  |
-     tfor [n-1 .. 0] ⟦ imap_body (x_p, y_p, f) ⟧ mH   ≈   ⟦ blocks ⟧ mV  |  Q
-                                                      |                  |
-  -----#    REWRITE reverse_tfor_eq    #--------------|------------------|-----
-                                                      |                  |
-     tfor [0 .. n] ⟦ imap_body (x_p, y_p, f) ⟧ mH     ≈   ⟦ blocks ⟧ mV  |  Q
-                                                      |                  |
-  ----------------------------------------------------|------------------|MONO-
-                                                      |                  |
-     tfor [0 .. n] ⟦ imap_body (x_p, y_p, f) ⟧ mH     ≈   ⟦ blocks ⟧ mV  | ?Q'
-                                                      |                  |
-  -------# APPLY genWhileLoop_tfor with (I := loop_invariant)  #---------------
-  (* N.B. [genWhileLoop_tfor] is specific to VIR, and can work on any source *)
-
-
-    Remaining proof obligations (simplified):
-
-      1. Setting up pre-/post-conditions
-
-            {{ PRECONDITION }} -> {{ loop_invariant 0 }}
-
-            {{ loop_invariant n }} -> {{ POSTCONDITION }}
-
-      2. Relate the iterations of the bodies.
-
-            {{ ∀ k, l @ loop_index = k ∧ loop_invariant k }}
-                imap_body ≈ blocks[label, body_entry]
-            {{ loop_invariant (S k) }}
-
-        Proved through symbolic execution of "atomic" operations (OP) --
-            rewrite with equations [denote_exp_*] of the form
-
-                 ⟦ OP ⟧ g l m ≈ Ret v
-
-         e.g.) Lemma denote_exp_GR :forall g l m id v τ,
-                   Maps.lookup id g = Some v ->
-                      ⟦ EXP_Ident (ID_Global id) at τ ⟧ g l m ≈
-                      Ret (m,(l,(g,dvalue_to_uvalue v))).
-
+    See comment above [DSHIMap_correct]
  *)
-Lemma DSHIMap_correct:
+Lemma DSHBinOp_correct:
   ∀ (n : nat) (x_p y_p : PExpr) (f : AExpr) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH)
     (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ)) (g : global_env)
     (ρ : local_env) (memV : memoryV),
-    genIR (DSHIMap n x_p y_p f) nextblock s1 ≡ inr (s2, (bid_in, bks))
+    genIR (DSHBinOp n x_p y_p f) nextblock s1 ≡ inr (s2, (bid_in, bks))
     → bid_bound s1 nextblock
     → state_invariant σ s1 memH (memV, (ρ, g))
     → Gamma_safe σ s1 s2
     (* We need an explicit predicate stating that the source program will not fail. *)
-    → no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ (DSHIMap n x_p y_p f)) memH)
+    → no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ (DSHBinOp n x_p y_p f)) memH)
     → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ g))
-           (interp_helix (denoteDSHOperator σ (DSHIMap n x_p y_p f)) memH)
+           (interp_helix (denoteDSHOperator σ (DSHBinOp n x_p y_p f)) memH)
             (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
 Proof.
   intros n x_p y_p f s1 s2 σ memH nextblock bid_in bid_from bks g ρ memV GEN NEXT PRE GAM NOFAIL.
@@ -799,16 +929,23 @@ Proof.
   unfold denotePExpr in *; cbn* in *.
 
   (* Clean up w/ renaming *)
+  rename
+    b into loopcontblock,
+    r into loopvar,
+    b0 into binopblock.
   rename i12 into storeid.
-  rename r0 into px.
-  rename r1 into py.
-  rename r2 into v.
+  rename r0 into loopvar2.
+  rename r1 into px0.
+  rename r2 into px1.
+  rename r3 into py.
+  rename
+    r4 into v0,
+    r5 into v1.
   destruct_unit.
   rename e into fexpr.
   rename c into fexpcode.
 
   rename i1 into x.
-  rename r into loopvarid.
   rename i4 into y.
   rename i2 into xp_typ_.
   rename i5 into yp_typ_.
@@ -816,21 +953,26 @@ Proof.
   destruct_unit.
   simp; try_abs.
 
-  clean_goal. destruct_unit.
+  clean_goal.
 
   (* Clean up [no_failure] *)
   repeat apply no_failure_Ret in NOFAIL.
   rename n3 into n3_temp.
   rename n2 into n3.
   rename n3_temp into n2.
-  destruct (assert_nat_neq "DSHIMap 'x' must not be equal 'y'" n3 n2) eqn : XNEQY; try_abs.
+  destruct (assert_nat_neq "DSHBinOp 'x' must not be equal 'y'" n3 n2) eqn : XNEQY;
+    try_abs.
 
   repeat apply no_failure_Ret in NOFAIL.
-  destruct (assert_nat_le "DSHIMap 'n' index out of bounds" n (MInt64asNT.to_nat i1)) eqn : BOUNDS; try_abs.
+  destruct (assert_nat_le "DSHBinOp 'n' larger than 'y_size'"
+              n (MInt64asNT.to_nat i1)) eqn : BOUNDS;
+    try_abs.
   repeat apply no_failure_Ret in NOFAIL.
 
-  edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
-  edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
+  edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto;
+    clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
+  edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto;
+    clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
 
   clean_goal.
 
@@ -851,19 +993,22 @@ Proof.
   hred.
 
   (* Rename states in order *)
-  rename i into s0.
-  rename i6 into s1.
-  rename s2 into s12.
-  rename i7 into s2.
-  rename i10 into s3.
-  rename i11 into s4.
-  rename i13 into s5.
-  rename i14 into s6.
-  rename i15 into s7.
-  rename i16 into s8.
-  rename i17 into s9.
-  rename i8 into s10.
-  rename i9 into s11.
+  rename i into s0. (* initial *)
+  (* see below *) rename s2 into s2'; rename i6 into s1. (* contblock *)
+  rename i7 into s2. (* loopvar *)
+  rename i10 into s3. (* binopblock *)
+  rename i11 into s4. (* storeid *)
+  rename i13 into s4_5. (* loopvar2 *) (* state 4.5 for more naming consistency *)
+  rename i14 into s5_0. (* px0 *)
+  rename i15 into s5_1. (* px1 *)
+  rename i16 into s6. (* py *)
+  rename i17 into s7_0. (* v0 *)
+  rename i18 into s7_1. (* v1 *)
+  rename i19 into s8. (* with vars before aexpr *)
+  rename i20 into s9. (* with vars after aexpr *)
+  rename i8 into s10. (* drop vars after aexpr *)
+  rename i9 into s11. (* drop loopvar after body before loopgen *)
+  (* see here (and above) *) rename s2' into s12. (* final *)
 
   rename l0 into bks.
 
@@ -917,7 +1062,7 @@ Proof.
   eapply eqit_trans.
   {
     eapply eutt_clo_bind_returns.
-    apply DSHIMap_interpreted_as_tfor.
+    apply DSHBinOp_interpreted_as_tfor.
     intros [ [] |] [ []| ] EQ R1 R2; inv EQ.
     rewrite interp_helix_MemSet.
     Unshelve.
@@ -942,7 +1087,8 @@ Proof.
     unfold lift_Rel_cfg in *. destruct y0. destruct p. destruct p.
     destruct H. split; auto.
     red. intros. red in mem_is_inv.
-    destruct v0; specialize (mem_is_inv _ _ _ _ _ H H2); cbn in *; eauto.
+    destruct v; specialize (mem_is_inv _ _ _ _ _ H H2); cbn in *; eauto.
+    cbn in *.
     edestruct mem_is_inv as (? & ? & ? & ? & ? & ?).
     exists x1, x2. split; auto. split; auto. split; auto. intros.
     specialize (H6 H7).
@@ -973,7 +1119,7 @@ Proof.
     destruct p. inv H1. inv H1. reflexivity.
   }
 
-  rewrite DSHIMap_interpreted_as_tfor in NOFAIL.
+  rewrite DSHBinOp_interpreted_as_tfor in NOFAIL.
 
   cbn* in *; simp; cbn in *.
   clean_goal.
@@ -983,7 +1129,7 @@ Proof.
     => epose proof @genWhileLoop_tfor_correct prefix loopvar loopcontblock body_entry body_blocks nextblock bid_in s1' s2' s1 s11 bks as GENC
   end.
 
-  Transparent genIMapBody.
+  Transparent genBinOpBody.
   forward GENC; [clear GENC |].
   cbn. left; reflexivity.
 
@@ -1000,8 +1146,8 @@ Proof.
     eapply lid_bound_between_shrink; [eapply lid_bound_between_newLocalVar | | ]; eauto; try reflexivity; solve_local_count.
     get_local_count_hyps.
     Transparent addVars.
-    inv Heqs12.
-    cbn in Heqs13.
+    inv Heqs15.
+    cbn in Heqs16.
     solve_local_count.
     Opaque addVars.
   }
@@ -1027,7 +1173,17 @@ Proof.
     unfold MInt64asNT.from_nat in Heqs5.
     unfold MInt64asNT.from_Z in Heqs5.
     simp.
-    apply l0.
+    nia.
+  }
+
+  assert (OVERFLOW_K: (forall k, (k <= n)%nat ->
+                            Z.of_nat (k + n) < Integers.Int64.modulus)%Z).
+  {
+    clear -Heqs5.
+    unfold MInt64asNT.from_nat in Heqs5.
+    unfold MInt64asNT.from_Z in Heqs5.
+    simp.
+    nia.
   }
 
   forward GENC; [clear GENC |]; eauto.
@@ -1041,10 +1197,10 @@ Proof.
 
   destruct u. unfold assert_nat_neq in XNEQY.
   unfold assert_false_to_err in XNEQY. break_match_hyp; try inv XNEQY.
-  apply beq_nat_false in Heqb1.
+  apply beq_nat_false in Heqb.
   unfold assert_nat_le, assert_true_to_err in BOUNDS.
   break_match_hyp; inv BOUNDS.
-  rename Heqb1 into XNEQY.
+  rename Heqb into XNEQY.
   rename Heqb0 into BOUNDS.
   apply Nat.leb_le in BOUNDS.
 
@@ -1081,11 +1237,14 @@ Proof.
 
   specialize (GENC I P Q (Some (memH, bkh_yoff))).
 
-  assert (EE : (ID_Local v, TYPE_Double) :: (ID_Local loopvarid, IntType) ::  Γ s12 ≡ Γ s9). {
+  assert (EE : (ID_Local v1, TYPE_Double) :: (ID_Local v0, TYPE_Double)
+                 :: (ID_Local loopvar, IntType) ::  Γ s12
+               ≡ Γ s9).
+  {
     get_gammas; eauto.
 
-    Transparent addVars. unfold addVars in Heqs12. inv Heqs12.
-    Opaque addVars. cbn in Heqs13.
+    Transparent addVars. unfold addVars in Heqs15. inv Heqs15.
+    Opaque addVars. cbn in Heqs16.
     congruence.
   }
 
@@ -1114,8 +1273,8 @@ Proof.
         destruct H; eapply lid_bound_between_shrink. eauto. 3 :  eauto.
         2 : solve_local_count. 3 : solve_local_count. 2 : reflexivity.
         Transparent addVars.
-        inv Heqs12.
-        cbn in Heqs13.
+        inv Heqs15.
+        cbn in Heqs16.
         solve_local_count.
       }
 
@@ -1128,12 +1287,12 @@ Proof.
       + unfold alist_add; cbn. cbn.
         destruct y; auto. cbn in *.
          break_match_goal.
-        * rewrite rel_dec_correct in Heqb1; subst.
+        * rewrite rel_dec_correct in Heqb; subst.
           assert (Gamma_safe σ s0 s12). solve_gamma_safe.
 
           Transparent addVars.
-          inv Heqs12.
-          cbn in Heqs13.
+          inv Heqs15.
+          cbn in Heqs16.
 
           assert (NIN: not (in_Gamma σ s0 id)). apply H.
           eapply lid_bound_between_shrink. eauto.
@@ -1144,26 +1303,25 @@ Proof.
           exfalso; eapply NIN.
           econstructor. apply Heqo0. eauto.
           eauto.
-        * apply neg_rel_dec_correct in Heqb1.
+        * apply neg_rel_dec_correct in Heqb.
           rewrite remove_neq_alist; eauto.
           all: typeclasses eauto.
-
       + unfold alist_add; cbn. cbn.
         destruct y; auto. cbn in *.
           break_match_goal.
-        * rewrite rel_dec_correct in Heqb1; subst.
+        * rewrite rel_dec_correct in Heqb; subst.
           assert (Gamma_safe σ s0 s12). solve_gamma_safe.
 
           Transparent addVars.
-          inv Heqs12.
-          cbn in Heqs13.
+          inv Heqs15.
+          cbn in Heqs16.
 
           assert (NIN: not (in_Gamma σ s0 id)). apply H.
           eapply lid_bound_between_shrink. eauto. solve_local_count. solve_local_count.
           exfalso; eapply NIN.
           econstructor. apply Heqo0. eauto.
           eauto.
-        * apply neg_rel_dec_correct in Heqb1.
+        * apply neg_rel_dec_correct in Heqb.
           rewrite remove_neq_alist; eauto.
           all: typeclasses eauto.
   }
@@ -1194,20 +1352,34 @@ Proof.
 
     eapply no_failure_tfor in NOFAIL. 3 : eauto. 2 : lia. cbn in NOFAIL.
     rewrite interp_helix_bind in NOFAIL. rewrite EQk in NOFAIL.
-    assert (NOFAIL' := NOFAIL).
-    apply no_failure_bind_prefix in NOFAIL.
+    rename NOFAIL into NOFAIL'.
+    assert (NOFAIL1 := NOFAIL').
+    assert (NOFAIL2 := NOFAIL').
+    apply no_failure_bind_prefix in NOFAIL1.
 
-    simp; try_abs. clear NOFAIL.
+    destruct mem_lookup eqn:k_bkh_xoff in NOFAIL1; [| solve [try_abs]].
+    eapply no_failure_bind_cont in NOFAIL2.
+    2: {
+      rewrite k_bkh_xoff, interp_helix_Ret.
+      constructor.
+      reflexivity.
+    }
+    rewrite interp_helix_bind in NOFAIL2.
+    apply no_failure_bind_prefix in NOFAIL2.
+
+    simp; try_abs. clear NOFAIL1 NOFAIL2.
     hvred.
     eapply no_failure_bind_cont in NOFAIL'; cycle 1.
     rewrite interp_helix_ret. constructor. cbn. reflexivity.
     cbn in NOFAIL'. rewrite bind_ret_l in NOFAIL'. rewrite interp_helix_bind in NOFAIL'.
     clear RET. clear WFOCFG. clear INPUTS_BETWEEN.
 
-    (* [HELIX] "denoteIUnCType" exposed *)
-    unfold denoteIUnCType.
+    rewrite interp_helix_Ret, bind_ret_l in NOFAIL'.
 
-    Transparent genIMapBody. cbn in Heqs5. simp; try_abs.
+    (* [HELIX] "denoteIBinCType" exposed *)
+    unfold denoteIBinCType.
+
+    Transparent genBinOpBody. cbn in Heqs5. simp; try_abs.
 
     (* [Vellvm] step until "fmap" is exposed, so we can match with AExpr denotation *)
     rewrite denote_ocfg_unfold_in.
@@ -1231,7 +1403,6 @@ Proof.
 
     (* Read info as if we're reading from a protected σ *)
     erewrite <- nth_error_protect_neq with (n2 := n1) in Heqo; auto.
-
     apply nth_error_protect_eq' in Heqo0.
 
     rewrite GENIR_Γ in LUn0, LUn.
@@ -1247,31 +1418,29 @@ Proof.
     rewrite MLUP_xoff_l in H'; symmetry in H'; inv H'.
     inv TEQ_xoff.
 
-    assert (UNIQ0 : v ≢ loopvarid). {
+    assert (UNIQ0_0 : v0 ≢ loopvar). {
       intros CONTRA; subst.
       eapply lid_bound_between_newLocalVar in Heqs4.
-      eapply lid_bound_between_incLocal in Heqs11.
+      eapply lid_bound_between_incLocal in Heqs13.
       eapply state_bound_between_id_separate.
       2 : eapply Heqs4.
-      2 : eapply Heqs11.
+      2 : eapply Heqs13.
       eapply incLocalNamed_count_gen_injective.
       solve_local_count. reflexivity.
     }
 
-
-    assert (UNIQ1 : loopvarid ≢ px). {
+    assert (UNIQ0_1 : v1 ≢ loopvar). {
       intros CONTRA; subst.
-
       eapply lid_bound_between_newLocalVar in Heqs4.
-      eapply lid_bound_between_incLocal in Heqs9.
+      eapply lid_bound_between_incLocal in Heqs14.
       eapply state_bound_between_id_separate.
       2 : eapply Heqs4.
-      2 : eapply Heqs9.
+      2 : eapply Heqs14.
       eapply incLocalNamed_count_gen_injective.
       solve_local_count. reflexivity.
     }
 
-    assert (UNIQ2 : loopvarid ≢ py). {
+    assert (UNIQ1_0 : loopvar ≢ px0). {
       intros CONTRA; subst.
 
       eapply lid_bound_between_newLocalVar in Heqs4.
@@ -1283,23 +1452,59 @@ Proof.
       solve_local_count. reflexivity.
     }
 
+    assert (UNIQ1_1 : loopvar ≢ px1). {
+      intros CONTRA; subst.
+
+      eapply lid_bound_between_newLocalVar in Heqs4.
+      eapply lid_bound_between_incLocal in Heqs11.
+      eapply state_bound_between_id_separate.
+      2 : eapply Heqs4.
+      2 : eapply Heqs11.
+      eapply incLocalNamed_count_gen_injective.
+      solve_local_count. reflexivity.
+    }
+
+    assert (UNIQ2 : loopvar ≢ py). {
+      intros CONTRA; subst.
+
+      eapply lid_bound_between_newLocalVar in Heqs4.
+      eapply lid_bound_between_incLocal in Heqs12.
+      eapply state_bound_between_id_separate.
+      2 : eapply Heqs4.
+      2 : eapply Heqs12.
+      eapply incLocalNamed_count_gen_injective.
+      solve_local_count. reflexivity.
+    }
+
+    assert (UNIQ3 : loopvar ≢ loopvar2).
+    {
+      intros C; subst.
+
+      eapply lid_bound_between_newLocalVar in Heqs4.
+      eapply lid_bound_between_incLocal in Heqs9.
+      eapply state_bound_between_id_separate.
+      2 : eapply Heqs4.
+      2 : eapply Heqs9.
+      eapply incLocalNamed_count_gen_injective.
+      solve_local_count. reflexivity.
+    }
 
     pose proof INV_p as MINV_YOFF.
     unfold memory_invariant_partial_write' in MINV_YOFF.
     destruct MINV_YOFF as (FITS_yoff_l & INLG_YOFF & MINV_YOFF).
 
-    (* [Vellvm] GEP Instruction for [x] *)
+    (* [Vellvm] GEP Instruction for [x0] *)
     match goal with
     | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] =>
     edestruct denote_instr_gep_array' with
-        (l := li) (g := g0) (m := mV) (i := px)
+        (l := li) (g := g0) (m := mV) (i := px0)
         (size := size') (a := ptrll_xoff_l) (ptr := ptr') as (? & ? & ? & ?)
     end.
 
     destruct x;
     rename id into XID.
     rewrite denote_exp_GR. 2 : eauto.
-    cbn. subst. reflexivity.
+    cbn. reflexivity.
     2 : {
       rewrite denote_exp_LR. 2 : eauto.
       cbn.
@@ -1317,15 +1522,14 @@ Proof.
         rewrite to_nat_repr_nat. eauto. auto.
     }
 
-    rename x0 into src_addr.
-    rename H0 into READ_x.
-    rename H1 into HSRC_GEP.
-    rename H2 into x_HGEP.
+    rename x0 into src_addr0.
+    rename H0 into READ_x0.
+    rename H1 into HSRC0_GEP.
+    rename H2 into x0_HGEP.
 
     vred.
-    setoid_rewrite x_HGEP; clear x_HGEP.
+    setoid_rewrite x0_HGEP; clear x0_HGEP.
     vred.
-
 
     (* [Vellvm] : Load *)
     vred.
@@ -1336,6 +1540,133 @@ Proof.
     }
     2: eauto.
 
+    vred.
+    vred.
+    vstep.
+    {
+      do 2 vstep.
+      all: try reflexivity.
+      cbn; rewrite !alist_find_neq; eauto.
+      reflexivity.
+      reflexivity.
+    }
+
+    vred.
+
+    cbn.
+
+    match goal with
+    | |- context[alist_add ?p ?v ?l] =>
+        remember (alist_add p v l)
+        as li'
+    end.
+
+    match goal with
+    | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] =>
+        edestruct denote_instr_gep_array' with
+        (l := li')
+        (g := g0) (m := mV) (i := px1)
+        (size := size') (a := ptrll_xoff_l) (ptr := ptr') as (? & ? & ? & ?)
+    end.
+
+    2: instantiate (4:=EXP_Ident (ID_Local loopvar2)).
+    3: instantiate (2:=DTYPE_Double).
+
+    destruct x;
+      rename id into XID.
+    rewrite denote_exp_GR. 2 : eauto.
+    cbn. subst li'. reflexivity.
+    2 : {
+      rewrite denote_exp_LR.
+      2: cbn; rewrite !alist_find_add_eq; eauto.
+      repeat f_equiv.
+      cbn.
+      Unshelve.
+      2: exact (k+n).
+      2: exact (UVALUE_Double b0).
+
+      clear - BOUNDk OVERFLOW OVERFLOW_K.
+      assert (OVERFLOW' : (Z.of_nat k < Integers.Int64.modulus)%Z) by lia.
+      specialize (OVERFLOW_K k); forward OVERFLOW_K; [lia |]; clear BOUNDk.
+
+      unfold DynamicValues.Int64.add.
+      rewrite !Int64.unsigned_repr_eq, !Z.mod_small by lia.
+      now rewrite <-Znat.Nat2Z.inj_add.
+    }
+    
+    { subst. rewrite denote_exp_LR. cbn. reflexivity.
+      cbn.
+      rewrite !alist_find_neq.
+      -
+        eauto.
+      -
+        eapply lid_bound_fresh.
+        2: {
+          eapply lid_bound_between_shrink_down with (s1:=s0); cycle 1.
+          solve_lid_bound_between.
+          solve_local_count.
+        }
+        eapply PRE.
+        rewrite GENIR_Γ.
+        eassumption.
+      -
+        eapply lid_bound_fresh.
+        2: {
+          eapply lid_bound_between_shrink_down with (s1:=s0); cycle 1.
+          solve_lid_bound_between.
+          solve_local_count.
+        }
+        eapply PRE.
+        rewrite GENIR_Γ.
+        eassumption.
+      -
+        eapply lid_bound_fresh.
+        2: {
+          eapply lid_bound_between_shrink_down with (s1:=s0); cycle 1.
+          solve_lid_bound_between.
+          solve_local_count.
+        }
+        eapply PRE.
+        rewrite GENIR_Γ.
+        eassumption.
+    }
+    {
+      assert (GET := GETARRAYCELL_xoff_l).
+      clear - GET Heqo2 BOUNDk OVERFLOW OVERFLOW_K.
+      replace (k + n)
+        with (MInt64asNT.to_nat (Int64.repr (Z.of_nat (k + n))))
+        in *.
+      now eapply GET.
+      specialize (OVERFLOW_K k); forward OVERFLOW_K; [lia |]; clear BOUNDk.
+      clear - OVERFLOW_K.
+      unfold MInt64asNT.to_nat.
+      replace (k + n) with (Z.to_nat (Z.of_nat (k + n))) at 2 by lia.
+      f_equal.
+      Transparent Int64.repr.
+      unfold Int64.repr.
+      Opaque Int64.repr.
+      cbn.
+      rewrite Integers.Int64.Z_mod_modulus_eq.
+      rewrite Z.mod_small; lia.
+    }
+    
+    rename x0 into src_addr1.
+    rename H0 into READ_x1.
+    rename H1 into HSRC1_GEP.
+    rename H2 into x1_HGEP.
+    
+    erewrite x1_HGEP; clear x1_HGEP.
+    vred.
+    
+    (* [Vellvm] : Load *)
+    vred.
+    rewrite denote_instr_load.
+    2 : {
+      apply denote_exp_LR.
+      cbn. apply alist_find_add_eq.
+    }
+    2: eauto.
+    
     (* [Vellvm] : Clean up *)
     vred.
     rewrite map_app.
@@ -1343,18 +1674,33 @@ Proof.
     typ_to_dtyp_simplify.
     rewrite denote_code_app.
     vred.
-    Transparent addVars. unfold addVars in Heqs12. inv Heqs12.
+    Transparent addVars. unfold addVars in Heqs15. inv Heqs15.
 
-    assert (s2_ext : Γ s5 ≡ (ID_Local loopvarid, IntType) :: Γ s1). {
-      assert (H5 :Γ s2 ≡ Γ s5) by solve_gamma.
+    assert (s2_ext_0 : Γ s5_0 ≡ (ID_Local loopvar, IntType) :: Γ s1). {
+      assert (H5 :Γ s2 ≡ Γ s5_0) by solve_gamma.
       rewrite <- H5.
       apply newLocalVar_Γ in Heqs4. eauto.
     }
 
-    assert (neg0 : ~ in_Gamma σ s0 v) by solve_not_in_gamma.
-    eapply not_in_gamma_protect in neg0.
+    assert (s2_ext_1 : Γ s5_1 ≡ (ID_Local loopvar, IntType) :: Γ s1). {
+      assert (H5 :Γ s2 ≡ Γ s5_1) by solve_gamma.
+      rewrite <- H5.
+      apply newLocalVar_Γ in Heqs4. eauto.
+    }
 
-    assert (neg1 : ¬ in_Gamma ((DSHnatVal (Int64.repr (Z.of_nat k)), false) :: (protect σ n1)) s5 v). {
+    assert (neg0_0 : ~ in_Gamma σ s0 v0) by solve_not_in_gamma.
+    assert (neg0_1 : ~ in_Gamma σ s0 v1) by solve_not_in_gamma.
+    eapply not_in_gamma_protect in neg0_0.
+    eapply not_in_gamma_protect in neg0_1.
+
+    assert (neg1_00 : ¬ in_Gamma ((DSHnatVal (Int64.repr (Z.of_nat k)), false) :: (protect σ n1)) s5_0 v0). {
+        eapply not_in_gamma_cons.
+        assert (Heqs4' := Heqs4).
+        eauto.
+        eapply not_in_Gamma_Gamma_eq. 2 : eauto. solve_gamma.
+        auto.
+    }
+    assert (neg1_01 : ¬ in_Gamma ((DSHnatVal (Int64.repr (Z.of_nat k)), false) :: (protect σ n1)) s5_0 v1). {
         eapply not_in_gamma_cons.
         assert (Heqs4' := Heqs4).
         eauto.
@@ -1381,7 +1727,7 @@ Proof.
     }
 
     {
-      erewrite denote_exp_LR with (id := loopvarid).
+      erewrite denote_exp_LR with (id := loopvar).
       reflexivity.
       cbn.
       eauto.
@@ -1399,14 +1745,14 @@ Proof.
     assert (allocated ptrll_xoff_l mV) as PTRLL_XOFF_ALLOCATED_mV_yoff by solve_allocated.
     assert (allocated ptrll_yoff mV) as SRC_ALLOCATED_mV by solve_allocated.
 
-    assert (no_overlap_dtyp dst_addr DTYPE_Double src_addr DTYPE_Double) as NOALIAS.
+    assert (no_overlap_dtyp dst_addr DTYPE_Double src_addr0 DTYPE_Double) as NOALIAS0.
     {
       unfold no_overlap_dtyp.
       unfold no_overlap.
       left.
 
       rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HDST_GEP).
-      rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HSRC_GEP).
+      rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HSRC0_GEP).
       intros BLOCKS; symmetry in BLOCKS; revert BLOCKS.
       destruct INV_r.
 
@@ -1426,9 +1772,35 @@ Proof.
         inv Heqo.
     }
 
-    assert (E : Γ s5 ≡ Γ s7) by solve_gamma.
-    rewrite E in *.
+    assert (no_overlap_dtyp dst_addr DTYPE_Double src_addr1 DTYPE_Double) as NOALIAS1.
+    {
+      unfold no_overlap_dtyp.
+      unfold no_overlap.
+      left.
 
+      rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HDST_GEP).
+      rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HSRC1_GEP).
+      intros BLOCKS; symmetry in BLOCKS; revert BLOCKS.
+      destruct INV_r.
+
+      do 2 red in st_no_llvm_ptr_aliasing.
+      pose proof st_no_llvm_ptr_aliasing.
+      specialize (H0 x ptrll_xoff_l y ptrll_yoff n0 n1). cbn in H.
+      eapply H0; eauto.
+
+      - intros CONTRA.
+        rewrite CONTRA in LUn.
+        pose proof st_no_id_aliasing as HST.
+        red in HST.
+        epose proof (HST _ _ _ _ _ _ _ Heqo Heqo0 LUn LUn0).
+        subst.
+
+        rewrite Heqo0 in Heqo.
+        inv Heqo.
+    }
+
+    assert (E : Γ s5_0 ≡ Γ s7_1) by solve_gamma.
+    rewrite E in *.
 
     (* [BOTH] Finally eached AExpr / FMap. Step both of them. *)
     eapply eutt_clo_bind_returns.
@@ -1437,40 +1809,56 @@ Proof.
       eassumption.
       - (* From our . [state_invariant_relaxed] and [memory_invariant_partial_write],
           we should be able to retrieve the normal state invariant. *)
-        eapply state_invariant_enter_scope_DSHCType' with (s1 := s5); eauto.
-        + rewrite E. reflexivity.
+        eapply state_invariant_enter_scope_DSHCType'2 with (s1 := s5_0).
+        4: rewrite E; cbn; reflexivity.
+        all: eauto.
+        + solve_id_neq.
         + eapply lid_bound_before.
-          solve_lid_bound. eauto.
+          solve_lid_bound.
+          eauto.
+        + eapply lid_bound_before.
+          solve_lid_bound.
+          solve_local_count.
         + solve_local_count.
+        + solve_alist_in.
         + solve_alist_in.
         + (* use LOOPVAR *)
           eapply state_invariant_Γ with (s1 := s2).
           2 : solve_gamma.
 
-          eapply state_invariant_enter_scope_DSHnat with (x := loopvarid); eauto.
+          eapply state_invariant_enter_scope_DSHnat with (x := loopvar); eauto.
           * apply not_in_Gamma_Gamma_eq with (s1 := s0). solve_gamma.
             eapply Gamma_safe_protect in GAM.
             eapply GAM. eapply lid_bound_between_shrink with (s2 := s1) (s3 := s2); try solve_local_count.
             clear -Heqs4. Transparent newLocalVar.
             eapply lid_bound_between_newLocalVar; eauto. reflexivity.
-          * rewrite alist_find_neq; auto. rewrite alist_find_neq; auto.
-          * eapply state_invariant_Γ with (s1 := s0). 2 : solve_gamma. 2 : solve_local_count.
+          * rewrite alist_find_neq; auto. rewrite !alist_find_neq; auto.
+          * eapply state_invariant_Γ with (s1 := s0).
+            2: solve_gamma.
+            2: solve_local_count.
+            eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
+            eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
+            solve_not_in_gamma.
+            eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
+            solve_not_in_gamma.
             eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
             eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
             solve_not_in_gamma.
             eapply state_invariant_Γ'.
-            eauto. solve_gamma.
+            eauto.
+            solve_gamma.
             destruct PRE.
             eauto.
           * solve_local_count.
-      - eapply Gamma_safe_Context_extend with (s1 := s2) (s2 := s10).
-        4 : { cbn. assert (GAM_E: Γ s2 ≡ Γ s7) by solve_gamma. rewrite GAM_E. reflexivity. }
+      - eapply Gamma_safe_Context_extend2 with (s1 := s2) (s2 := s10).
+        4 : { cbn. assert (GAM_E: Γ s2 ≡ Γ s7_1) by solve_gamma. rewrite GAM_E. reflexivity. }
         2 : solve_local_count.
         2 : solve_local_count.
         2 : {
-          apply genAExpr_Γ in Heqs13. cbn in Heqs13.
-          eapply dropVars_Γ in Heqs14. 2 : eauto. rewrite Heqs14. auto.
+          apply genAExpr_Γ in Heqs16. cbn in Heqs16.
+          eapply dropVars_Γ2 in Heqs17. 2 : eauto. rewrite Heqs17. auto.
         }
+        2 : { intros. cbn in *. solve_id_neq. }
         2 : { intros. cbn in *. solve_id_neq. }
 
         assert (Heqs4' := Heqs4).
@@ -1484,14 +1872,14 @@ Proof.
         eapply dropVars_Γ in Heqs6.
 
         2 : {
-          apply genAExpr_Γ in Heqs13. cbn in Heqs13. rewrite s2_ext in Heqs13.
-          eapply dropVars_Γ in Heqs14 ; eauto.
+          apply genAExpr_Γ in Heqs16. cbn in Heqs16. rewrite s2_ext_0 in Heqs16.
+          eapply dropVars_Γ2 in Heqs17 ; eauto.
         }
         assert (GAM_E : Γ s11 ≡ Γ s12) by solve_gamma. rewrite <- GAM_E.
 
-        apply genAExpr_Γ in Heqs13. cbn in Heqs13. rewrite s2_ext in Heqs13.
-        eapply dropVars_Γ in Heqs14 ; eauto.
-        rewrite <- Heqs13.
+        apply genAExpr_Γ in Heqs16. cbn in Heqs16. rewrite s2_ext_0 in Heqs16.
+        eapply dropVars_Γ2 in Heqs17 ; eauto.
+        rewrite <- Heqs16.
         assert (H1: Γ s1 ≡ Γ s11) by solve_gamma.
         rewrite H1. clear H1. reflexivity.
 
@@ -1502,7 +1890,8 @@ Proof.
         eapply lid_bound_between_newLocalVar. 2 : eauto. cbn. reflexivity.
         all : eauto.
 
-      - clear -NOFAIL'. unfold denoteIUnCType in NOFAIL'.
+      - clear -NOFAIL'. unfold denoteIBinCType in NOFAIL'.
+        rewrite interp_helix_bind in NOFAIL'.
         apply no_failure_bind_prefix in NOFAIL'. eauto.
     }
 
@@ -1530,7 +1919,7 @@ Proof.
     match goal with
     | [|- context[OP_GetElementPtr (DTYPE_Array y_size _) (_, ?ptr')]] =>
       pose proof (denote_instr_gep_array_no_read_addr py y_size DTYPE_Double 
-                                                      (EXP_Ident (ID_Local loopvarid)) k ptr' ptrll_yoff g0 li' li' li' mV dst_addr)
+                                                      (EXP_Ident (ID_Local loopvar)) k ptr' ptrll_yoff g0 li' li' li' mV dst_addr)
            as EQ_y_HG'
     end.
 
@@ -1543,7 +1932,7 @@ Proof.
       clear IRState_is_WF.
       clear st_id_allocated st_no_id_aliasing.
       cbn in mem_is_inv. rewrite <- EE in mem_is_inv.
-      specialize (mem_is_inv (S (S n1))). cbn in mem_is_inv.
+      specialize (mem_is_inv (S (S (S n1)))). cbn in mem_is_inv.
       specialize (mem_is_inv _ _ _ _ Heqo0 LUn0). cbn in mem_is_inv.
       edestruct mem_is_inv as (? & ? & ? & ? & ?); clear mem_is_inv.
       inv H0. destruct H2. clear H2.
@@ -1560,13 +1949,9 @@ Proof.
       specialize (st_gamma_bound0 _ LUn0).
       erewrite <- local_scope_modif_bound_before. 2 : eauto. 3 : eauto.
       2 : solve_local_count.
-      erewrite alist_find_neq.
-      erewrite alist_find_neq.
+      erewrite !alist_find_neq.
       eauto.
-      eapply in_gamma_not_in_neq.
-      solve_in_gamma. solve_not_in_gamma.
-      eapply in_gamma_not_in_neq.
-      solve_in_gamma. solve_not_in_gamma.
+      all: eapply in_gamma_not_in_neq; [solve_in_gamma | solve_not_in_gamma].
     }
 
     forward EQ_y_HG'; [clear EQ_y_HG' | ].
@@ -1580,17 +1965,18 @@ Proof.
 
     forward EQ_y_HG'; [clear EQ_y_HG' | ].
     {
-      erewrite denote_exp_LR with (id := loopvarid).
+      erewrite denote_exp_LR with (id := loopvar).
       reflexivity.
       cbn.
       Unshelve.
 
       erewrite local_scope_modif_out.
       4 : eauto.
-      rewrite alist_find_neq.
-      rewrite alist_find_neq. cbn. setoid_rewrite LOOPVAR.
+      rewrite !alist_find_neq.
+      cbn. setoid_rewrite LOOPVAR.
       Unshelve.
-      unfold uvalue_of_nat. reflexivity. eauto. eauto.
+      unfold uvalue_of_nat. reflexivity.
+      1-5: eauto.
       3 : exact s1. solve_local_count.
       eapply lid_bound_between_shrink with (s2 := s1) (s3 := s2).
       Transparent newLocalVar.
@@ -1615,7 +2001,7 @@ Proof.
 
     assert (Y_SIZE : y_sz ≡ Z.to_N (Int64.intval i1)). {
       epose proof (vellvm_helix_ptr_size _ LUn0 Heqo0).
-      eapply state_invariant_cons2 in PRE_INV'. 3 : eauto. 2 : solve_local_count.
+      eapply state_invariant_cons3 in PRE_INV'. 3 : eauto. 2 : solve_local_count.
       specialize (H1 PRE_INV'). eauto.
     }
 
@@ -1655,7 +2041,7 @@ Proof.
       cbn.
       eapply Gamma_preserved_add_not_in_Gamma.
       solve_gamma_preserved.
-      eapply not_in_gamma_cons. cbn. reflexivity.
+      eapply not_in_gamma_cons2. cbn. reflexivity.
       2 : solve_id_neq.
 
       eapply not_in_gamma_cons. eauto.
@@ -1663,7 +2049,7 @@ Proof.
       2 : {
         assert (neg2 : ~ in_Gamma σ s0 py) by solve_not_in_gamma.
         apply not_in_gamma_protect; eauto.
-      } solve_gamma. eauto.
+      } solve_gamma. eauto. solve_id_neq.
     }
     3 : { cbn. reflexivity. }
     2: {
@@ -1679,12 +2065,12 @@ Proof.
     vred.
 
     cbn.
-    rename b into loopcont.
+    rename loopcontblock into loopcont.
     rewrite denote_ocfg_unfold_not_in.
     vred.
     2: {
       cbn.
-      assert (b0 ≢ loopcont) as NEQ by solve_id_neq.
+      assert (binopblock ≢ loopcont) as NEQ by solve_id_neq.
       rewrite find_block_ineq; eauto.
     }
     rename x0 into mV_yoff.
@@ -1700,21 +2086,21 @@ Proof.
     eauto.
     3 : eauto.
     3 : {
-      eapply local_scope_modif_add'.
-      2 : {
-        eapply local_scope_modif_sub'_l.
-        2 : eapply local_scope_modif_sub'_l.
-        3 : {
-          eapply local_scope_modif_shrink.
-          eauto. Unshelve.
-          5 : exact s10. 4 : exact s4.
-          solve_local_count. solve_local_count.
-          exact s1.
-        }
-        solve_lid_bound_between. solve_lid_bound_between.
-      }
-      solve_lid_bound_between.
+      eapply local_scope_modif_add'; cycle 1.
+      eapply local_scope_modif_sub'_l; cycle 1.
+      eapply local_scope_modif_sub'_l; cycle 1.
+      eapply local_scope_modif_sub'_l; cycle 1.
+      eapply local_scope_modif_sub'_l; cycle 1.
+      eapply local_scope_modif_sub'_l; cycle 1.
+      eapply local_scope_modif_shrink.
+      eassumption.
+      instantiate (1:=s4).
+      2: instantiate (1:=s10).
+      solve_local_count.
+      solve_local_count.
+      all: solve_lid_bound_between.
     }
+    instantiate (1:=s1).
     solve_local_count.
     {
       eapply lid_bound_between_shrink with (s2 := s1) (s3 := s2).
@@ -1723,7 +2109,7 @@ Proof.
       solve_local_count.
       solve_local_count.
     }
-  - exists b0. reflexivity.
+  - exists binopblock. reflexivity.
 
   - (* Re-establish loop invariant *)
     eapply INV_STABLE. right. solve_lid_bound_between.
@@ -1735,7 +2121,7 @@ Proof.
       (* TODO: The write state invariant doesn't take account to when pointers are different.
       Need to specify a range that is not being written to and state that the dst_addr is contained in it*)
 
-      eapply state_invariant_cons2 with (s := s9). solve_local_count.
+      eapply state_invariant_cons3 with (s := s9). solve_local_count.
       eapply EE.
       destruct PRE_INV'.
       split; eauto.
@@ -1746,7 +2132,7 @@ Proof.
       destruct INV_p as (FITS_p & INLG_p & MLU_f).
       (* "Clean your room" *)
       clear RET1 RET2 Mono_IRState extends exp_in_scope exp_correct.
-      clear NOFAIL' FITS_xoff_l INLG_xoff_l MLUP_xoff_l GETARRAYCELL_xoff_l UNIQ0 UNIQ1 UNIQ2.
+      clear NOFAIL' FITS_xoff_l INLG_xoff_l MLUP_xoff_l GETARRAYCELL_xoff_l UNIQ0_0 UNIQ0_1 UNIQ1_0 UNIQ1_1 UNIQ2.
       clear EQ_y_HG.
       clean_goal.
       rename WRITE_MEM into ptrll_INLG.
@@ -1755,10 +2141,10 @@ Proof.
       pose proof LUn0. pose proof Heqo0.
       intros * CLU CEq.
       rewrite <- EE in CEq.
-      destruct (Nat.eq_dec n2 (S (S n1))) eqn : IS_IT_THE_WRITTEN_ADDRESS ; subst.
+      destruct (Nat.eq_dec n2 (S (S (S n1)))) eqn : IS_IT_THE_WRITTEN_ADDRESS ; subst.
       (* Yes, it is the address being written to (ptrll_yoff). *)
       {
-        intros. specialize (mem_is_inv (S (S n1))). cbn in mem_is_inv.
+        intros. specialize (mem_is_inv (S (S (S n1)))). cbn in mem_is_inv.
         rewrite <- EE in mem_is_inv. specialize (mem_is_inv _ _ _ _ H1 H0).
         cbn in CLU, CEq. rewrite H0 in CEq.
         rewrite H1 in CLU. inv CEq. inv CLU.
@@ -1780,9 +2166,9 @@ Proof.
 
         specialize (mem_is_inv n2). cbn in mem_is_inv.
         specialize (mem_is_inv _ _ _ _ CLU CEq).
-        destruct v0; eauto.
+        destruct v; eauto.
         {
-          (* [Case] v0 is a natVal *)
+          (* [Case] v is a natVal *)
           (* WTS: in_local_or_global_scalar li' g0 mV_yoff @id (dvalue_of_int n4) τ *)
           destruct x0; eauto.
           red in mem_is_inv.
@@ -1802,7 +2188,7 @@ Proof.
 
             do 2 red in st_no_llvm_ptr_aliasing.
             rewrite <- EE in CEq. 
-            specialize (st_no_llvm_ptr_aliasing (ID_Global id) x0 y ptrll_yoff n2 (S (S n1))).
+            specialize (st_no_llvm_ptr_aliasing (ID_Global id) x0 y ptrll_yoff n2 (S (S (S n1)))).
             cbn in st_no_llvm_ptr_aliasing.
             eapply st_no_llvm_ptr_aliasing. eauto. eauto. rewrite <- EE. eauto. rewrite <- EE. eauto. eauto. eauto.
             eauto.
@@ -1812,7 +2198,7 @@ Proof.
           erewrite write_untouched; eauto. constructor.
         }
         {
-          (* [Case] v0 is a CTypeVal *)
+          (* [Case] v is a CTypeVal *)
           red in mem_is_inv.
           destruct x0; eauto.
 
@@ -1833,7 +2219,7 @@ Proof.
 
             do 2 red in st_no_llvm_ptr_aliasing.
             rewrite <- EE in CEq. 
-            specialize (st_no_llvm_ptr_aliasing (ID_Global id) x0 y ptrll_yoff n2 (S (S n1))).
+            specialize (st_no_llvm_ptr_aliasing (ID_Global id) x0 y ptrll_yoff n2 (S (S (S n1)))).
             cbn in st_no_llvm_ptr_aliasing.
             eapply st_no_llvm_ptr_aliasing. eauto. eauto. rewrite <- EE. eauto. rewrite <- EE. eauto. eauto. eauto.
             eauto.
@@ -1870,7 +2256,7 @@ Proof.
           assert (fst x1 ≢ fst ptrll_yoff). {
             do 2 red in st_no_llvm_ptr_aliasing.
             rewrite <- EE in CEq. 
-            specialize (st_no_llvm_ptr_aliasing x0 x1 y ptrll_yoff n2 (S (S n1))).
+            specialize (st_no_llvm_ptr_aliasing x0 x1 y ptrll_yoff n2 (S (S (S n1)))).
             cbn in st_no_llvm_ptr_aliasing.
             eapply st_no_llvm_ptr_aliasing. eauto. eauto. rewrite <- EE. eauto. rewrite <- EE. eauto. eauto. eauto.
             eauto.
@@ -1894,7 +2280,7 @@ Proof.
     (* Partial memory up to (S k) *)
     {
       (* intros. *)
-      intros i v0 Bounds_sz MLU_k.
+      intros i v Bounds_sz MLU_k.
       rename MINV_YOFF into MINV_partial.
       revert MINV_partial; intros.
 
@@ -1917,7 +2303,7 @@ Proof.
         assert (Bounds_rest: MInt64asNT.to_nat i < k). {
           lia.
         }
-        specialize (MINV_partial i v0).
+        specialize (MINV_partial i v).
 
         - erewrite write_array_cell_untouched.
           eapply MINV_partial.
@@ -1964,10 +2350,12 @@ Proof.
      solve_lid_bound_between.
      eapply local_scope_modif_sub'_l; cycle 1.
      eapply local_scope_modif_sub'_l; cycle 1.
-     eapply local_scope_modif_shrink. eauto.
+     eapply local_scope_modif_sub'_l; cycle 1.
+     eapply local_scope_modif_sub'_l; cycle 1.
+     eapply local_scope_modif_sub'_l; cycle 1.
+     eapply local_scope_modif_shrink. eassumption.
      solve_local_count. solve_local_count.
-     solve_lid_bound_between.
-     solve_lid_bound_between.
+     all: solve_lid_bound_between.
 }
 
 
@@ -1977,8 +2365,9 @@ forward GENC; [clear GENC |]; eauto.
 forward GENC; [clear GENC |].
 {
   get_local_count_hyps.
-  unfold addVars in Heqs12. inv Heqs12.
-  cbn in Heqs13. lia.
+  unfold addVars in Heqs15. inv Heqs15.
+  cbn in Heqs16.
+  lia.
 }
 
 forward GENC; [clear GENC |].
@@ -1990,7 +2379,7 @@ forward GENC; [clear GENC |].
 forward GENC; [clear GENC |].
 {
   subst I P; red; intros; auto. destruct a; eauto.
-  destruct p; eauto. destruct b1; eauto. destruct p; eauto.
+  destruct p; eauto. destruct b; eauto. destruct p; eauto.
   intuition. subst.
   destruct H0.
   cbn.
@@ -2007,7 +2396,7 @@ forward GENC; [clear GENC |].
 forward GENC; [clear GENC |].
 {
   subst I P Q; red; intros; auto. destruct a; auto.
-  destruct p; eauto. destruct b1; eauto. destruct p; eauto.
+  destruct p; eauto. destruct b; eauto. destruct p; eauto.
   destruct H as (? & ? & ? & ?). subst. destruct H2.
   subst.
   split ;[|split]; eauto.
@@ -2043,7 +2432,7 @@ forward GENC; [clear GENC |].
     (* Case 1 : The address in question was not written to : use normal memory
       invariant. *)
     subst. eapply nth_error_protect_ineq in H; eauto.
-    specialize (mem_is_inv _ _ _ _ _ H H1). destruct v0; eauto.
+    specialize (mem_is_inv _ _ _ _ _ H H1). destruct v; eauto.
     destruct mem_is_inv as (ptrll & τ' & TEQ & FITS' & INLG' & MLUP).
     inv TEQ. eexists. eexists.
     split; eauto. split; eauto. split; eauto.
@@ -2124,4 +2513,3 @@ apply eqit_Ret.
     tauto.
 }
 Qed.
-

@@ -80,16 +80,23 @@ Section AExpr.
     f_equiv.
   Qed.
 
+  Open Scope Float64asCT_scope.
+
+  (* IZ: this is most likely wrong after ZLess change (introduction of epsilon) *)
   (* TODO move this, possibly give it a better name. *)
   Lemma float_cmp :
     forall (a b : binary64),
     exists v,
-      double_cmp FOlt a b ≡ DVALUE_I1 v /\ MFloat64asCT.CTypeZLess a b ≡ (Floats.Float.of_longu
-                                                                           (DynamicValues.Int64.repr (DynamicValues.Int1.unsigned v))).
+      double_cmp FOlt DynWin_CompareEpsilon.compare_epsilon (b ⊟ a) ≡ DVALUE_I1 v /\
+        MFloat64asCT.CTypeZLess a b
+        ≡ (Floats.Float.of_longu
+             (DynamicValues.Int64.repr (DynamicValues.Int1.unsigned v))).
   Proof.
     intros a b.
     unfold double_cmp.
-    destruct (ordered64 a b && Floats.Float.cmp Integers.Clt a b)%bool eqn:CMP.
+    match goal with
+    | |- context [if ?x then _ else _] => destruct x eqn:CMP
+    end.
     - exists DynamicValues.Int1.one.
       simpl.
       rewrite <- CTypeOne_of_longu.
@@ -104,57 +111,41 @@ Section AExpr.
       unfold Floats.Float.cmp, Floats.cmp_of_comparison, Floats.Float.compare in C.
       break_match_hyp; [|inversion C].
       break_match_hyp; inversion C; clear C.
-      subst.
-      unfold not_nan64 in OA, OB.
-      apply Bool.negb_true_iff in OA.
-      apply Bool.negb_true_iff in OB.
-      destruct a; try inv OA; destruct b; try inv OB; reflexivity.
+      reflexivity.
     - exists DynamicValues.Int1.zero.
       simpl.
       rewrite <- CTypeZero_of_longu.
       intuition; cbn.
       unfold MFloat64asCT.CTypeZLess.
-      Transparent Floats.Float.cmp.
       unfold Floats.Float.cmp, Floats.cmp_of_comparison, Floats.Float.compare in CMP.
-      unfold ordered64 in CMP.
-      rewrite 2!BoolUtil.andb_eq_false in CMP.
-      destruct CMP.
-      +
-        destruct H.
-        *
-          unfold not_nan64 in H.
-          apply Bool.negb_false_iff in H.
-          break_match.
-          1,2,4: inversion H.
-          reflexivity.
-        *
-          destruct b; try inversion H.
-          unfold not_nan64 in H.
-          break_match; reflexivity.
-      +
-        repeat break_match_hyp; subst; [| inversion H | |];
-          destruct a,b; inversion Heqo; try reflexivity.
+      repeat break_match; try reflexivity.
+      subst; exfalso.
+      apply Bool.andb_false_elim in CMP.
+      destruct CMP; try discriminate.
+      unfold ordered64, not_nan64, is_nan in e.
+      cbn in *.
+      now repeat break_match.
   Qed.
 
   Lemma min_float_correct: forall (a b: binary64), Float_minimum a b ≡ MFloat64asCT.CTypeMin a b.
   Proof.
     intros.
     Transparent Floats.Float.cmp.
-    unfold Float_minimum, MFloat64asCT.CTypeMin, Float64Min, Floats.Float.cmp.
+    unfold Float_minimum, MFloat64asCT.CTypeMin, Floats.Float.cmp.
     unfold Floats.Float.compare, Floats.cmp_of_comparison.
     destruct a,b; try break_if; repeat break_match ;try reflexivity; crush.
   Qed.
 
   Lemma max_float_correct: forall (a b: binary64), Float_maxnum a b ≡ MFloat64asCT.CTypeMax a b.
   Proof.
-    intros. 
+    intros.
     Transparent Floats.Float.cmp.
-    unfold Float_maxnum, MFloat64asCT.CTypeMax, Float64Max, Floats.Float.cmp.
+    unfold Float_maxnum, MFloat64asCT.CTypeMax, Floats.Float.cmp.
     unfold Floats.Float.compare, Floats.cmp_of_comparison.
     destruct a,b; try break_if; repeat break_match ;try reflexivity; crush.
   Qed.
 
-  Definition genAExpr_exp_correct σ s1 s2 (e: exp typ) 
+  Definition genAExpr_exp_correct σ s1 s2 (e: exp typ)
     : Rel_cfg_T binary64 unit :=
     fun '(x,i) '(memV,(l,(g,v))) =>
       forall l',
@@ -173,7 +164,7 @@ Section AExpr.
     : Prop :=
     {
     exp_correct : genAExpr_exp_correct σ s1 s2 e mf stf;
-    is_almost_pure : almost_pure mi sti mf stf; 
+    is_almost_pure : almost_pure mi sti mf stf;
     extends : local_scope_modif s1 s2 (fst (snd sti)) (fst (snd stf));
     exp_in_scope : forall id, e ≡ EXP_Ident (ID_Local id) -> ((exists v, alist_In id (fst (snd sti)) v) \/ (lid_bound_between s1 s2 id /\ s1 << s2));
     Gamma_cst : Γ s2 ≡ Γ s1;
@@ -183,7 +174,7 @@ Section AExpr.
   Import ProofMode.
   Lemma genAExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
-      (* Helix  bits *)   (aexp: AExpr) (σ: evalContext) (memH: memoryH) 
+      (* Helix  bits *)   (aexp: AExpr) (σ: evalContext) (memH: memoryH)
       (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
 
       genAExpr aexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
@@ -194,7 +185,7 @@ Section AExpr.
       eutt (succ_cfg (lift_Rel_cfg (state_invariant σ s2) ⩕ genAExpr_post e σ s1 s2 memH (mk_config_cfg memV l g)))
            (interp_helix (denoteAExpr σ aexp) memH)
            (interp_cfg (denote_code (convert_typ [] c)) g l memV).
-  Proof. 
+  Proof.
     intros s1 s2 aexp; revert s1 s2; induction aexp; intros * COMPILE PRE SAFE NOFAIL.
     - (* Variable case *)
       (* Reducing the compilation *)
@@ -204,12 +195,12 @@ Section AExpr.
       + (* The variable maps to an integer in the IRState *)
         unfold denoteAExpr in *; cbn* in *.
         simp; try_abs.
-        
+
         hvred.
         break_inner_match_goal; try_abs.
         break_inner_match_goal; try_abs.
         hvred.
-        edestruct memory_invariant_GLU_AExpr as (ptr & MAP & READ); eauto. 
+        edestruct memory_invariant_GLU_AExpr as (ptr & MAP & READ); eauto.
         rewrite typ_to_dtyp_equation in READ.
 
         vstep.
@@ -224,7 +215,7 @@ Section AExpr.
           cbn.
           red in LOC; rewrite LOC.
           rewrite alist_find_add_eq; reflexivity.
-          eauto using lid_bound_between_incLocal.          
+          eauto using lid_bound_between_incLocal.
         * apply local_scope_modif_add.
           auto using lid_bound_between_incLocal.
         * intros * EQ; inv EQ; right.
@@ -284,7 +275,7 @@ Section AExpr.
       eapply eutt_clo_bind_returns; [eapply genMExpr_correct | ..]; eauto.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct vH0, PRE0 as (SINV2 & [PRES2 (addr_m & EQEXPm & LU_ARRAY) <-]). 
+      destruct vH0, PRE0 as (SINV2 & [PRES2 (addr_m & EQEXPm & LU_ARRAY) <-]).
       cbn* in *; inv_eqs.
       hvred.
 
@@ -314,7 +305,7 @@ Section AExpr.
       vstep.
       {
         vstep.
-        apply lookup_alist_add_eq. 
+        apply lookup_alist_add_eq.
         reflexivity.
       }
 
@@ -348,7 +339,7 @@ Section AExpr.
         solve_local_count.
         eapply lid_bound_between_incLocal; eauto.
         reflexivity.
-      + solve_local_scope_modif. 
+      + solve_local_scope_modif.
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s3; [solve_local_count |].
@@ -356,7 +347,7 @@ Section AExpr.
       + rewrite <- Gamma_cst0.
         etransitivity; eapply incLocal_Γ; eauto.
       + left; solve_local_count.
-    - (* AAbs *) 
+    - (* AAbs *)
       cbn* in *; simp.
       hvred.
       eapply eutt_clo_bind; try eapply IHaexp; eauto.
@@ -367,7 +358,7 @@ Section AExpr.
       cbn in *; hvred.
 
       (* TO FIX *)
-      Transparent assoc. 
+      Transparent assoc.
       vstep; try reflexivity.
       {
         cbn.
@@ -402,14 +393,14 @@ Section AExpr.
         solve_local_count.
         eapply lid_bound_between_incLocal; eauto.
         reflexivity.
-      + solve_local_scope_modif. 
+      + solve_local_scope_modif.
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
         apply lid_bound_between_shrink_down with i; [solve_local_count |].
         eauto using lid_bound_between_incLocal.
       + rewrite <- GAM1.
         eapply incLocal_Γ; eauto.
-      + left; solve_local_count.        
+      + left; solve_local_count.
     - (* APlus *)
       cbn* in *; simp...
       hvred.
@@ -665,7 +656,7 @@ Section AExpr.
       }
 
       vstep; try reflexivity.
-      { cbn; vred_l. 
+      { cbn; vred_l.
         rewrite EXP1.
         autorewrite with itree.
         vred_l.
@@ -693,7 +684,7 @@ Section AExpr.
         apply lid_bound_between_shrink_down with s3.
         solve_local_count.
         eapply lid_bound_between_incLocal; eauto.
-        rewrite min_float_correct. 
+        rewrite min_float_correct.
         reflexivity.
       + solve_local_scope_modif.
       + intros ? EQ; inv EQ.
@@ -744,7 +735,7 @@ Section AExpr.
       }
 
       vstep; try reflexivity.
-      { cbn; vred_l. 
+      { cbn; vred_l.
         rewrite EXP1.
         autorewrite with itree.
         vred_l.
@@ -772,7 +763,7 @@ Section AExpr.
         apply lid_bound_between_shrink_down with s3.
         solve_local_count.
         eapply lid_bound_between_incLocal; eauto.
-        rewrite max_float_correct. 
+        rewrite max_float_correct.
         reflexivity.
       + solve_local_scope_modif.
       + intros ? EQ; inv EQ.
@@ -822,17 +813,33 @@ Section AExpr.
         eapply Gamma_safe_shrink; eauto; solve_local_count.
       }
 
-      (*
+
       vstep.
       {
         vstep.
+        rewrite EXP2; reflexivity.
         rewrite EXP1; reflexivity.
-        rewrite EXP2; reflexivity. 
         all: reflexivity.
       }
 
       hvred.
+
+      vstep.
+      {
+        vstep.
+        {
+          rewrite denote_exp_double; reflexivity.
+        }
+        rewrite denote_exp_LR.
+        reflexivity.
+        cbn; rewrite alist_find_add_eq.
+        all: reflexivity.
+      }
+
+      hvred.
+
       destruct (float_cmp vH vH0) as (? & ? & ?).
+
       rewrite denote_instr_comment.
       vstep.
       unfold denote_exp; simpl.
@@ -846,7 +853,10 @@ Section AExpr.
       }
       rewrite uvalue_to_dvalue_of_dvalue_to_uvalue; reflexivity.
       2 : reflexivity.
-      rewrite H. reflexivity.
+
+      unfold MFloat64asCT.CTypeSub, DynamicValues.FT_Rounding, FT_Rounding in *.
+      rewrite H.
+      reflexivity.
 
       clear EXP1 EXP2 NOFAIL IHaexp1 IHaexp2.
       clean_goal.
@@ -855,19 +865,40 @@ Section AExpr.
       apply eutt_Ret; split; [| split]; cbn; eauto.
       + eapply state_invariant_incVoid; [eauto | ..].
         eapply state_invariant_add_fresh; [eauto |..].
+        eapply WF_IRState_Γ.
+        2: symmetry; eapply incLocal_Γ; eassumption.
         eapply WF_IRState_Γ;
           eauto; etransitivity; symmetry; eapply incLocal_Γ; eauto.
 
+        eapply Gamma_safe_shrink.
+        2: symmetry; eapply incLocal_Γ; eassumption.
         eapply Gamma_safe_shrink; eauto.
         rewrite <- GAM1, <- GAM2; auto.
         symmetry; eapply incLocal_Γ; eauto.
         solve_local_count.
         solve_local_count.
         solve_local_count.
+        solve_local_count.
         eapply state_invariant_add_fresh; [eauto |..].
+        eapply WF_IRState_Γ.
+        2: symmetry; eapply incLocal_Γ; eassumption.
         eapply WF_IRState_Γ;
           eauto; symmetry; eapply incLocal_Γ; eauto.
 
+        eapply Gamma_safe_shrink.
+        2: symmetry; eapply incLocal_Γ; eassumption.
+        eapply Gamma_safe_shrink; eauto.
+        rewrite <- GAM1, <- GAM2; auto.
+        solve_local_count.
+        solve_local_count.
+        solve_local_count.
+        solve_local_count.
+
+        eapply state_invariant_add_fresh; [eauto |..].
+        eapply WF_IRState_Γ.
+        2: symmetry; eapply incLocal_Γ; eassumption.
+        eapply WF_IRState_Γ;
+          eauto; symmetry; eapply incLocal_Γ; eauto.
         eapply Gamma_safe_shrink; eauto.
         rewrite <- GAM1, <- GAM2; auto.
         solve_local_count.
@@ -879,23 +910,22 @@ Section AExpr.
         cbn.
         erewrite SCO,alist_find_add_eq.
         reflexivity.
-        apply lid_bound_between_shrink_down with s4.
-        solve_local_count.
-        apply lid_bound_between_shrink_up with s5.
-        solve_local_count.
+        apply lid_bound_between_shrink_down with s5; [solve_local_count |].
+        apply lid_bound_between_shrink_up with i3; [solve_local_count |].
         eapply lid_bound_between_incLocal; eauto.
         rewrite H0; reflexivity.
       + solve_local_scope_modif.
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
-        apply lid_bound_between_shrink_down with s4; [solve_local_count |].
-        apply lid_bound_between_shrink_up with s5; [solve_local_count |].
+        apply lid_bound_between_shrink_down with s5; [solve_local_count |].
+        apply lid_bound_between_shrink_up with i3; [solve_local_count |].
         eauto using lid_bound_between_incLocal.
       + rewrite <- GAM1, <- GAM2.
         apply incLocal_Γ in Heqs1; rewrite <- Heqs1.
         apply incLocal_Γ in Heqs2; rewrite <- Heqs2.
-        apply incVoid_Γ in Heqs3; auto. 
+        apply incLocal_Γ in Heqs3; rewrite <-Heqs3.
+        apply incVoid_Γ in Heqs4; auto.
       + left; solve_local_count.
-  Qed. *) Admitted.
+  Qed.
 
 End AExpr.

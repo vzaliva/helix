@@ -1,5 +1,8 @@
+#!/usr/bin/env sh
+
+DIFF_CONTENT=$(cat <<'EOF'
 diff --git a/coq/DynWin/DynWinProofs.v b/coq/DynWin/DynWinProofs.v
-index f173810d..7a285aaa 100644
+index 285b9e98..49345e6e 100644
 --- a/coq/DynWin/DynWinProofs.v
 +++ b/coq/DynWin/DynWinProofs.v
 @@ -67,7 +67,7 @@ Section HCOL_Breakdown.
@@ -457,7 +460,7 @@ index f173810d..7a285aaa 100644
    Lemma float_as_bool_Zless (a b : Bits.binary64) :
      float_as_bool (MFloat64asCT.CTypeZLess a b) true
      <->
-     safe_lt64 FT_Rounding epsilon a b.
+     safe_lt64 FT_Rounding DynWin_CompareEpsilon.compare_epsilon a b.
 -  Proof.
 +  Admitted. (* Proof.
      unfold MFloat64asCT.CTypeZLess, MFloat64asCT.CTypeSub,
@@ -471,17 +474,158 @@ index f173810d..7a285aaa 100644
  
  End CType_impl.
 diff --git a/coq/DynWin/DynWinTopLevel.v b/coq/DynWin/DynWinTopLevel.v
-index 86eaa56c..c8c60483 100644
+index 5231794b..e77ee4c6 100644
 --- a/coq/DynWin/DynWinTopLevel.v
 +++ b/coq/DynWin/DynWinTopLevel.v
-@@ -586,8 +586,8 @@ Section Gappa.
-     (* This would be nicely suitable for [par:] instead of [all:],
+@@ -180,7 +180,7 @@ Section RHCOL_to_FHCOL_bounds.
+ 
+   Global Instance DynWinOutRel_Proper :
+     Proper ((=) ==> (=) ==> (=) ==> (=) ==> (iff)) DynWinOutRel.
+-  Proof.
++  Admitted. (* Proof.
+     intros a1 a2 A x1 x2 X y1 y2 Y y64_1 y64_2 Y64.
+     unfold DynWinOutRel.
+     clear - Y Y64.
+@@ -188,7 +188,7 @@ Section RHCOL_to_FHCOL_bounds.
+     specialize (Y64 dynwin_y_offset).
+     rewrite Y, Y64.
+     tauto.
+-  Qed.
++  Qed. *)
+ 
+ End RHCOL_to_FHCOL_bounds.
+ 
+@@ -345,7 +345,7 @@ Section Gappa.
+     (POLY : poly ≡ a0 + vr * a1 + vr * vr * a2)
+     :
+     B64R compare_epsilon < ◻ (cheb64 - poly64) -> (poly < cheb)%R.
+-  Proof.
++  Admitted. (* Proof.
+     intros LT64.
+     (* 1b-40 *)
+     pose (cheb_delta := B64R (
+@@ -416,7 +416,7 @@ Section Gappa.
+     clear CU LT64.
+ 
+     gappa_crush.
+-  Qed.
++  Qed. *)
+ 
+   Close Scope R_scope.
+   
+@@ -469,7 +469,7 @@ Section Gappa.
+            (MRasCT.CTypeMax MRasCT.CTypeZero
+               (MRasCT.CTypeAbs (MRasCT.CTypeSub (B64R fx1) (B64R fx3))))
+            (MRasCT.CTypeAbs (MRasCT.CTypeSub (B64R fx2) (B64R fx4))))%R.
+-  Proof.
++  Admitted. (* Proof.
+     rewrite !fmaxZeroAbs, !R_MaxZeroAbs, !R_PlusZeroLeft, !R_MultOneLeft in *.
+ 
+     autounfold with unfold_RCT.
+@@ -588,7 +588,7 @@ Section Gappa.
         but that encounters an anomaly *)
      Unshelve.
--    all: crush_floats.
+     all: crush_floats.
 -  Qed.
-+    (* all: crush_floats.
-+  Qed. *) Admitted.
++  Qed. *)
  
  End Gappa.
  
+@@ -712,7 +712,7 @@ Section DynWin_Symbolic.
+           end
+       | _ => None
+       end.
+-  Proof.
++  Admitted. (* Proof.
+     intros Σ M OP RE MB.
+     pose proof RHCOLtoSRHCOL_semantic_preservation
+       r_op sr_op
+@@ -749,7 +749,7 @@ Section DynWin_Symbolic.
+     reflexivity.
+     rewrite H4.
+     reflexivity.
+-  Qed.
++  Qed. *)
+ 
+   (* TODO: this is exactly the same as the above *)
+   Lemma FHCOL_to_symbolic_lookup
+@@ -789,7 +789,7 @@ Section DynWin_Symbolic.
+           end
+       | _ => None
+       end.
+-  Proof.
++  Admitted. (* Proof.
+     intros Σ M OP RE MB.
+     pose proof FHCOLtoSFHCOL_semantic_preservation
+       r_op sr_op
+@@ -826,7 +826,7 @@ Section DynWin_Symbolic.
+     reflexivity.
+     rewrite H4.
+     reflexivity.
+-  Qed.
++  Qed. *)
+ 
+   (* For some reason the lhs of this
+      doesn't [cbn/cbv/etc], but easily [Compute]s *)
+@@ -854,9 +854,9 @@ Section DynWin_Symbolic.
+               (SMult (SMult (SMult SConstOne (SVar 3)) (SVar 3)) (SVar 2)))
+            (SMax (SMax SConstZero (SAbs (SSub (SVar 4) (SVar 6))))
+               (SAbs (SSub (SVar 5) (SVar 7))))).
+-  Proof.
++  Admitted. (* Proof.
+     reflexivity.
+-  Qed.
++  Qed. *)
+ 
+   Lemma RHCOL_to_FHCOL_numerical_correct
+     (r_omemory : RHCOLEval.memory)
+@@ -884,7 +884,7 @@ Section DynWin_Symbolic.
+     :
+     DynWinInConstr a_rmem x_rmem ->
+     DynWinOutRel a_rmem x_rmem y_rmem y_fmem.
+-  Proof.
++  Admitted. (* Proof.
+     intros INCONSTR.
+     unfold DynWinOutRel.
+ 
+@@ -1211,7 +1211,7 @@ Section DynWin_Symbolic.
+     eapply oxC.
+     eapply oyC.
+     all: assumption.
+-  Qed.
++  Qed. *)
+ 
+ End DynWin_Symbolic.
+ 
+@@ -1263,7 +1263,7 @@ Theorem HCOL_to_FHCOL_Correctness (a: vector CarrierA 3):
+               (FHCOLEval.estimateFuel dynwin_FHCOL) = (Some (inr f_omemory))
+             /\ FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem
+             /\ DynWinOutRel a_rmem x_rmem y_rmem y_fmem.
+-Proof.
++Admitted. (* Proof.
+   intros * HC * CR CRM CRE * RA RX INCONSTR.
+ 
+   remember (RHCOLEval.memory_set
+@@ -1602,4 +1602,4 @@ Proof.
+   now rewrite <-Y_RMEM.
+   now rewrite F_EVAL.
+   now rewrite <-Y_FMEM.
+-Qed.
++Qed. *)
+EOF
+)
+
+# Ensure a newline at the end of the diff
+DIFF_CONTENT="${DIFF_CONTENT}
+"
+
+# Check if the diff has been applied
+if printf %s "$DIFF_CONTENT" | git apply --check --reverse 2>/dev/null; then
+    # The diff has been applied, so unapply it
+    echo "Uncommenting proofs... (unapplying diff)"
+    printf %s "$DIFF_CONTENT" | git apply --reverse
+else
+    # The diff hasn't been applied, so apply it
+    echo "Commenting out proofs... (applying diff)"
+    printf %s "$DIFF_CONTENT" | git apply
+fi

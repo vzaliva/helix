@@ -62,6 +62,18 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma dropVars_Γ2 :
+  ∀ s1 s2 hd1 hd2 tl,
+    dropVars 2 s1 ≡ inr (s2, ()) →
+    Γ s1 ≡ hd1 :: hd2 :: tl →
+    Γ s2 ≡ tl.
+Proof.
+  intros * DR EQ; cbn in *.
+  rewrite EQ in DR.
+  cbn in *.
+  now invc DR.
+Qed.
+
 Lemma resolve_PVar_Γ :
   forall p s1 s2 x,
     resolve_PVar p s1 ≡ inr (s2, x) ->
@@ -223,9 +235,13 @@ Proof.
       auto.
   - simp.
     rewrite Heqs4 in H1. inv H1; auto.
+  - simp.
+    rewrite Heqs4 in H1; inv H1; auto.
   - simp. rewrite Heqs2 in Heql1; inv Heql1; auto.
-  - simp. rewrite Heqs0 in Heql1; inv Heql1; auto.
-  - eapply IHop1 in Heqs2; eauto.
+  - simp. rewrite Heqs0 in Heql1; invc Heql1; auto.
+  -
+    simp.
+    eapply IHop1 in Heqs2; eauto.
     eapply IHop2 in Heqs0; eauto.
     subst_Γs.
     reflexivity.

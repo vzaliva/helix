@@ -76,3 +76,7 @@ tramp
 .\#*
 /experiments/.ipynb_checkpoints/
 /experiments/a.out
+/ml/*.ll
+
+# VS Code
+.vscode

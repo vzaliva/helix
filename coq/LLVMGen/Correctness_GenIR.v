@@ -8,6 +8,9 @@ Require Import Helix.LLVMGen.Correctness_While.
 Require Import Helix.LLVMGen.Correctness_Loop.
 Require Import Helix.LLVMGen.Correctness_IMap.
 Require Import Helix.LLVMGen.Correctness_Power.
+Require Import Helix.LLVMGen.Correctness_MemInit.
+Require Import Helix.LLVMGen.Correctness_BinOp.
+Require Import Helix.LLVMGen.Correctness_MemMap2.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
@@ -31,12 +34,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 Arguments add_comment /.
 Arguments add_comments /.
 Section GenIR.
-
-  (* The result is a branch *)
-  Definition branches (to : block_id) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
-    match c with
-    | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
-    end.
 
   Hint Resolve state_invariant_incBlockNamed : state_invariant.
   Hint Resolve state_invariant_incLocal : state_invariant.
@@ -63,21 +60,11 @@ Section GenIR.
   Notation "'to_nat'" := (MInt64asNT.to_nat) (only printing).
 
   Import AlistNotations.
-
-  Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
-    : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
-    lift_Rel_cfg (state_invariant σ s2) ⩕
-                 branches to ⩕
-                 (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
-
   Opaque alist_add.
 
   (* Correctness result for the compilation of operators.
      All core features of the language are tackled: assignment and allocation,
      sequence and looping, iterations over vectors with IMap and Power.
-     Three operators remain to be handled: DSHBinop, DSHMemMap2, MemInit.
-     They have all similar structures to IMap and Power, iterating over vectors:
-     we do not anticipate the need for any extra meta-theory nor invariant.
    *)
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
@@ -88,7 +75,7 @@ Section GenIR.
       bid_bound s1 nextblock ->
       state_invariant σ s1 memH (memV, (ρ, g)) ->
       Gamma_safe σ s1 s2 ->
-      eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
+      eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ g))
            (interp_helix (denoteDSHOperator σ op) memH)
            (interp_cfg (D.denote_ocfg (convert_typ [] bks) (bid_from,bid_in))
                        g ρ memV).
@@ -102,7 +89,8 @@ Section GenIR.
       hvred.
       vjmp.
       (* TODO :( *)
-      unfold fmap, Fmap_block; cbn.
+      cbn.
+      (* unfold tfmap. TFmap_block; cbn. *)
       vred.
       vred.
       vred.
@@ -139,10 +127,10 @@ Section GenIR.
       apply DSHIMap_correct; auto.
 
     - (* DSHBinop *)
-      admit.
+      apply DSHBinOp_correct; auto.
 
     - (* DSHMemMap2 *)
-      admit.
+      apply DSHMemMap2_correct; auto.
 
     - (* DSHPower *)
       apply DSHPower_correct; auto. 
@@ -154,8 +142,7 @@ Section GenIR.
       apply DSHAlloc_correct; auto. 
 
     - (* DSHMemInit *)
-
-      admit.
+      apply MemInit_Correct; auto.
 
     - (* DSHSeq *)
       Opaque add_comment.
@@ -247,9 +234,10 @@ Section GenIR.
 
       apply genIR_local_count in GEN_OP1. 
       apply genIR_local_count in GEN_OP2.
+      destruct BR as [BR G1], POST as [POST G0].
+      split.
       eapply local_scope_modif_trans'''; eauto.
-
-  Admitted.
-
+      congruence.
+  Qed.
 
 End GenIR.

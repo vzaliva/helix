@@ -1,6 +1,12 @@
+---
 kind: pipeline
 type: docker
 name: default
+
+volumes:
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
 
 steps:
   - name: submodules
@@ -9,38 +15,41 @@ steps:
       - git submodule update --init --recursive
 
   - name: rebuild-cache
-    image: docker
+    image: zoickx/drone-helper
+    commands:
+      - drone-helper cache --deps="Dockerfile helix.opam"
     volumes:
       - name: dockersock
         path: /var/run/docker.sock
-    commands:
-      - docker build --no-cache -t helix-cache .
-    when:
-      event:
-        - cron
-      cron:
-      - rebuild-cache
 
   - name: build-vellvm
-    image: helix-cache
+    image: cache--${DRONE_REPO}:${DRONE_COMMIT_AFTER}
     pull: never
     commands:
       - opam exec -- make -j 1 vellvm
 
+  - name: compile-helix
+    image: cache--${DRONE_REPO}:${DRONE_COMMIT_AFTER}
+    pull: never
+    commands:
+      - opam exec -- make
+
   - name: test-helix
-    image: helix-cache
+    image: cache--${DRONE_REPO}:${DRONE_COMMIT_AFTER}
     pull: never
     commands:
       - opam exec -- make test
 
-  - name: notify-slack
-    image: plugins/slack
+  - name: notify
+    image: zoickx/drone-helper
+    commands:
+      - drone-helper notify --discord
+    when:
+      status:
+        - success
+        - failure
     settings:
-      webhook:
-        from_secret: slack_webhook
-      channel: bitbucket-activity
-
-volumes:
-  - name: dockersock
-    host:
-      path: /var/run/docker.sock
+      discord_webhook_token:
+        from_secret: discord_webhook_token 
+      discord_webhook_id:
+        from_secret: discord_webhook_id

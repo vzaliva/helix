@@ -2,7 +2,7 @@
 
     When generating variable and block id names, we allow any purely alphabetical prefix
     to be appended with the current freshness generator.
-    
+
     The predicate [is_correct_prefix] is used to check prefixes. It computes and can therefore always simply be discharged by [reflexivity].
     In particular [solve_prefix] takes care of it.
 
@@ -15,7 +15,7 @@ Require Import Helix.LLVMGen.Correctness_Prelude.
 Set Implicit Arguments.
 Set Strict Implicit.
 
-Import  Ascii. 
+Import  Ascii.
 Definition is_connector (c : ascii) : bool :=
   match c with
   | "095" => true
@@ -67,6 +67,55 @@ Proof.
   rewrite list_ascii_of_string_append.
   rewrite forallb_app.
   now rewrite S1, S2.
+Qed.
+
+Lemma string_append_forall (f : ascii → bool) (s1 s2 : string) :
+    CeresString.string_forall f (s1 @@ s2) ->
+    CeresString.string_forall f s1 /\ CeresString.string_forall f s2.
+Proof.
+  intro H.
+  induction s1.
+  - split.
+    + reflexivity.
+    + apply H.
+  - simpl in H.
+    destruct (f a) eqn:E; [| discriminate].
+    fold append in H.
+    apply IHs1 in H as [H1 H2].
+    split.
+    + simpl.
+      rewrite E.
+      apply H1.
+    + apply H2.
+Qed.
+
+Lemma string_forall_contradiction (f : ascii → bool) (s : string) :
+  CeresString.string_forall f s ->
+  CeresString.string_forall (negb ∘ f) s ->
+  s ≡ ""%string.
+Proof.
+  intros H1 H2.
+  destruct s; [reflexivity |].
+  destruct (f a) eqn:E.
+  - unfold compose in H2.
+    simpl in H2.
+    rewrite E in H2.
+    simpl in H2.
+    discriminate.
+  - simpl in H1.
+    rewrite E in H1.
+    discriminate.
+Qed.
+
+Lemma string_of_nat_not_empty :
+  forall n, string_of_nat n ≢ ""%string.
+Proof.
+  intros n H.
+  unfold string_of_nat in H.
+  pose proof string_of_nat_aux_prepends n "" as (s & H1 & H2).
+  rewrite H2 in H.
+  rewrite append_EmptyString in H.
+  contradiction.
 Qed.
 
 Lemma string_of_nat_not_alpha : forall n,
@@ -127,8 +176,8 @@ Proof.
   induction s as [| c s IH].
   - unfold append; cbn; intros _ EQ; split; auto.
     edestruct NPeano.Nat.eq_dec; try eassumption.
-    apply string_of_nat_inj in n0; contradiction n0; auto. 
-  - intros COR EQ; apply is_correct_prefix_String in COR; destruct COR as [PRE ALPHA]. 
+    apply string_of_nat_inj in n0; contradiction n0; auto.
+  - intros COR EQ; apply is_correct_prefix_String in COR; destruct COR as [PRE ALPHA].
     exfalso.
     destruct (string_of_nat n) as [| c' ?] eqn:EQ'; [inv EQ |].
     assert (c' ≡ c) by (unfold append in EQ; cbn in EQ; inv EQ; reflexivity).
@@ -167,7 +216,7 @@ Proof.
       edestruct IH; try eassumption.
       subst; auto.
 Qed.
-      
+
 Lemma valid_prefix_neq_differ :
   forall s1 s2 n k,
     is_correct_prefix s1 ->
@@ -191,7 +240,7 @@ Proof.
 Qed.
 
 
-Hint Resolve is_correct_prefix_append : PREFIX.
+#[export] Hint Resolve is_correct_prefix_append : PREFIX.
 
 Ltac solve_prefix :=
   try solve

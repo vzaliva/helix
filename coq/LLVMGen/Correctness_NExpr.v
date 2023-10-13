@@ -1,6 +1,7 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.Context.
+Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Import LidBound.
 
@@ -35,9 +36,9 @@ Typeclasses Opaque equiv.
  *)
 
 Section NExpr.
-  
+
 (** * Tactics
-    
+
   - [cbn*] : unfolds a fixed list of definitions we want to go under, and reduces via [cbn]
   - [simp] : systematically destruct [match] in the context. Used in particular to systematically
              derive from the success of the compilation the success of the compilation of the sub-components.
@@ -46,11 +47,11 @@ Section NExpr.
              [no_failure].
 
   - [solve_lu] : attempts to discharge goal of the shape [Maps.lookup id l = Some ?]
-  - [solve_state_invariant] : attempts to discharge goal of the shape [state_invariant _ _ _ _] 
+  - [solve_state_invariant] : attempts to discharge goal of the shape [state_invariant _ _ _ _]
 
   - [hvred] : stands for helix-vellvm-reduction. Uses rewriting to "reduce" both side of the simulation
              being proved to a bind whose first component is either the denotation of a parameter,
-             or of a concrete operation to be processed. 
+             or of a concrete operation to be processed.
   - [vred] : stands for vellvm-reduction. Similar to [hvred], but performing only [vellvm]-based reduction
              on the right hand-side of the simulation.
              In the context of this development, is a synonymous for [vstep_r].
@@ -69,7 +70,7 @@ Section NExpr.
   Opaque incVoid.
   Opaque incLocal.
 
-  Definition genNExpr_exp_correct σ s1 s2 (e: exp typ) 
+  Definition genNExpr_exp_correct σ s1 s2 (e: exp typ)
     : Rel_cfg_T DynamicValues.int64 unit :=
     fun '(x,i) '(memV,(l,(g,v))) =>
       forall l',
@@ -88,7 +89,7 @@ Section NExpr.
     : Prop :=
     {
     exp_correct : genNExpr_exp_correct σ s1 s2 e mf stf;
-    is_almost_pure : almost_pure mi sti mf stf; 
+    is_almost_pure : almost_pure mi sti mf stf;
     extends : local_scope_modif s1 s2 (fst (snd sti)) (fst (snd stf));
     exp_in_scope : forall id, e ≡ EXP_Ident (ID_Local id) -> ((alist_In id (fst (snd sti)) (UVALUE_I64 (snd mf)) /\ lid_bound s1 id) \/ (alist_In id (fst (snd stf)) (UVALUE_I64 (snd mf)) /\ lid_bound_between s1 s2 id /\ s1 << s2));
     Gamma_cst : Γ s2 ≡ Γ s1;
@@ -110,7 +111,7 @@ Section NExpr.
 
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
-      (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) 
+      (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH)
       (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) ((* li *) l : local_env) (memV : memoryV),
 
       genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
@@ -129,7 +130,7 @@ Section NExpr.
       cbn* in COMPILE; simp.
 
       + (* The variable maps to an integer in the IRState *)
-        unfold denoteNExpr in *; cbn* in *; simp; try_abs. 
+        unfold denoteNExpr in *; cbn* in *; simp; try_abs.
         hvred.
 
         (* The identifier has to be a local one *)
@@ -177,13 +178,13 @@ Section NExpr.
           cbn.
           red in LOC; rewrite LOC.
           rewrite alist_find_add_eq; reflexivity.
-          eauto using lid_bound_between_incLocal.          
+          eauto using lid_bound_between_incLocal.
         * apply local_scope_modif_add.
           auto using lid_bound_between_incLocal.
         * intros * EQ; inv EQ; right.
           split.
           solve_alist_in.
-          split; [auto using lid_bound_between_incLocal | solve_local_count].          
+          split; [auto using lid_bound_between_incLocal | solve_local_count].
         * eauto using incLocal_Γ.
         * left; solve_local_count.
 
@@ -211,7 +212,7 @@ Section NExpr.
       forward IHnexp1; eauto.
       eapply Gamma_safe_shrink; eauto; solve_local_count.
       forward IHnexp1; eauto.
-     
+
       (* e1 *)
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp1].
       introR; destruct_unit.
@@ -226,7 +227,7 @@ Section NExpr.
       forward IHnexp2; auto.
       forward IHnexp2; eauto.
       eapply Gamma_safe_shrink; eauto; solve_local_count.
-      forward IHnexp2; eauto. 
+      forward IHnexp2; eauto.
 
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
       introR; destruct_unit.
@@ -235,7 +236,7 @@ Section NExpr.
       cbn* in *; inv_eqs.
       (* rename H into VAR2. *)
 
-      (* division *) 
+      (* division *)
       simp; try_abs.
       hvred.
 
@@ -275,7 +276,7 @@ Section NExpr.
       + eapply state_invariant_add_fresh; eauto.
         eapply WF_IRState_Γ; eauto.
         symmetry; eapply incLocal_Γ; eauto.
-        
+
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
         solve_local_count.
@@ -317,7 +318,7 @@ Section NExpr.
       forward IHnexp1; eauto.
       eapply Gamma_safe_shrink; eauto; solve_local_count.
       forward IHnexp1; eauto.
-     
+
       (* e1 *)
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp1].
       introR; destruct_unit.
@@ -333,7 +334,7 @@ Section NExpr.
 
       forward IHnexp2; eauto.
       eapply Gamma_safe_shrink; eauto; solve_local_count.
-      forward IHnexp2; eauto. 
+      forward IHnexp2; eauto.
 
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
       introR; destruct_unit.
@@ -384,7 +385,7 @@ Section NExpr.
       + eapply state_invariant_add_fresh; eauto.
         eapply WF_IRState_Γ; eauto.
         symmetry; eapply incLocal_Γ; eauto.
-        
+
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
         solve_local_count.
@@ -420,11 +421,11 @@ Section NExpr.
 
      specialize (IHnexp1 _ _ σ memH _ _ g l memV Heqs).
      forward IHnexp1; auto.
-     
+
      forward IHnexp1; eauto.
      eapply Gamma_safe_shrink; eauto; solve_local_count.
      forward IHnexp1; eauto.
-     
+
      (* e1 *)
      eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp1].
      introR; destruct_unit.
@@ -440,7 +441,7 @@ Section NExpr.
 
      forward IHnexp2; eauto.
      eapply Gamma_safe_shrink; eauto; solve_local_count.
-     forward IHnexp2; eauto. 
+     forward IHnexp2; eauto.
 
      eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
      introR; destruct_unit.
@@ -477,7 +478,7 @@ Section NExpr.
      + eapply state_invariant_add_fresh; eauto.
        eapply WF_IRState_Γ; eauto.
        symmetry; eapply incLocal_Γ; eauto.
-       
+
        eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
        solve_local_count.
        solve_local_count.
@@ -503,7 +504,7 @@ Section NExpr.
      + rewrite <- GAM1, <- GAM2.
        eapply incLocal_Γ; eauto.
      + left; solve_local_count.
-       
+
    - (* NMinus *)
 
      cbn* in *; simp; try_abs.
@@ -517,7 +518,7 @@ Section NExpr.
      forward IHnexp1; eauto.
      eapply Gamma_safe_shrink; eauto; solve_local_count.
      forward IHnexp1; eauto.
-     
+
      (* e1 *)
      eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp1].
      introR; destruct_unit.
@@ -533,7 +534,7 @@ Section NExpr.
 
      forward IHnexp2; eauto.
      eapply Gamma_safe_shrink; eauto; solve_local_count.
-     forward IHnexp2; eauto. 
+     forward IHnexp2; eauto.
 
      eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
      introR; destruct_unit.
@@ -569,7 +570,7 @@ Section NExpr.
      + eapply state_invariant_add_fresh; eauto.
        eapply WF_IRState_Γ; eauto.
        symmetry; eapply incLocal_Γ; eauto.
-       
+
        eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
        solve_local_count.
        solve_local_count.
@@ -594,7 +595,7 @@ Section NExpr.
      + left; solve_local_count.
 
    - (* NMult *)
-     
+
      cbn* in *; simp; try_abs.
      hvred.
 
@@ -606,7 +607,7 @@ Section NExpr.
      forward IHnexp1; eauto.
      eapply Gamma_safe_shrink; eauto; solve_local_count.
      forward IHnexp1; eauto.
-     
+
      (* e1 *)
      eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp1].
      introR; destruct_unit.
@@ -622,7 +623,7 @@ Section NExpr.
 
      forward IHnexp2; eauto.
      eapply Gamma_safe_shrink; eauto; solve_local_count.
-     forward IHnexp2; eauto. 
+     forward IHnexp2; eauto.
 
      eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
      introR; destruct_unit.
@@ -655,12 +656,12 @@ Section NExpr.
      vstep; cbn; eauto; try reflexivity.
      cbn.
      break_inner_match; reflexivity.
-     
+
      apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
      + eapply state_invariant_add_fresh; eauto.
        eapply WF_IRState_Γ; eauto.
        symmetry; eapply incLocal_Γ; eauto.
-       
+
        eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
        solve_local_count.
        solve_local_count.
@@ -777,5 +778,5 @@ Section NExpr.
 
 End NExpr.
 
-Hint Resolve genNExpr_post_lsm : LSM.
-Hint Resolve genNExpr_post_lsm : LocalScopePreserved.
+#[global] Hint Resolve genNExpr_post_lsm : LSM.
+#[global] Hint Resolve genNExpr_post_lsm : LocalScopePreserved.
