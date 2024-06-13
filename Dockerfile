@@ -9,7 +9,7 @@ RUN apt-get upgrade
 RUN apt-get install opam
 
 RUN opam init --bare --disable-sandboxing
-RUN opam switch create helix ocaml-base-compiler \
+RUN opam switch create helix 4.14.1 \
     --repositories=default,coq-released=https://coq.inria.fr/opam/released
 
 COPY ./helix.opam /tmp/helix.opam
