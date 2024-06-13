@@ -2,28 +2,24 @@
 
 [[https://travis-ci.com/vzaliva/helix][https://travis-ci.com/vzaliva/helix.svg?token=x87izvm44MdTPLHzuxzF&branch=master]]
 
-HELIX project allows for the synthesis of high-performance
+The HELIX project enables the synthesis of high-performance
 implementations of numerical algorithms by providing a certified
-compiler for formally-specified DSL.  Based on the existing [[http://spiral.net/][SPIRAL]]
-system, HELIX adds the rigour of formal verification of its correctness
-using the Coq proof assistant. It formally defines a series of
-domain-specific languages starting with HCOL, which represents a
-computation data flow. HELIX works by transforming the original
-program through a series of intermediate languages, culminating in
-LLVM IR.
+compiler for formally specified domain-specific languages
+(DSLs). Building on the existing [[http://spiral.net/][SPIRAL]] system, HELIX enhances the
+rigour of formal verification using the Coq proof assistant to ensure
+correctness. It formally defines a series of domain-specific
+languages, starting with HCOL, which represents computational data
+flow. HELIX then transforms the original program through a series of
+intermediate languages, culminating in LLVM IR.
 
-- HELIX focuses on automatic translation a class of mathematical.
-  expressions to code.
-- It works by revealing implicit iteration constructs and re-shaping
-  them to match target platform parallelism and vectorization
-  capabilities.
-- HELIX is rigorously defined and formally verified.
-- HELIX is implemented in Coq proof assistant.
-- It supports non-linear operators.
-- Presently, HELIX uses SPIRAL as an optimization oracle, but it
-  certifies its findings.
-- LLVM is used as machine code generation backend.
-- Main application: Cyber-physical systems.
+  - HELIX focuses on the automatic translation of a class of mathematical expressions to code.
+  - It works by revealing implicit iteration constructs and reshaping them to match the target platform's parallelism and vectorization capabilities.
+  - HELIX is rigorously defined and formally verified.
+  - HELIX is implemented using the Coq proof assistant.
+  - It supports non-linear operators.
+  - Presently, HELIX uses SPIRAL as an optimization oracle, but it certifies its findings.
+  - LLVM is used as a machine code generation backend.
+  - Main application: Cyber-physical systems.
 
 ** Example
 
@@ -47,6 +43,13 @@ LLVM IR.
    - [[https://gitlab.inria.fr/gappa/gappa][gappa]] + [[https://gitlab.inria.fr/gappa/coq][coq-gappa]]
    - [[https://github.com/Karmaki/coq-dpdgraph][coq-dpdgraph]] /(optional)/
 
+** Clone the repository and install dependencies:
+
+#+BEGIN_SRC sh
+  git clone --recurse-submodules https://github.com/vzaliva/helix
+  cd helix
+#+END_SRC
+     
 To install all required dependencies:
 
 #+BEGIN_SRC sh
@@ -54,7 +57,7 @@ To install all required dependencies:
      make -j 4 install-deps
 #+END_SRC
 
-(if some package fail to install due to missing OS dependencies, use `opam depext pkgname` to install required OS packages)
+(if some package fails to install due to missing OS dependencies, use ~opam depext pkgname~ to install the required OS packages)
 
 To install *optional* dependencies:
 
@@ -62,12 +65,7 @@ To install *optional* dependencies:
      opam install coq-dpdgraph
 #+END_SRC
 
-** Bulding and Running 
-*** Clone the repository with submodules:
-
-#+BEGIN_SRC sh
-     git clone --recurse-submodules https://github.com/vzaliva/helix
-#+END_SRC
+** Building and Running 
 
 *** Build:
     
@@ -80,6 +78,27 @@ To install *optional* dependencies:
 #+BEGIN_SRC sh
      make test
 #+END_SRC
+
+** People
+   - Vadim Zaliva
+   - Franz Franchetti
+   - Yannick Zakowski
+   - Ilia Zaichuk
+   - Valerii Huhnin
+   - Calvin Beck
+   - Irene Yoon
+   - Steve Zdancewic
+
+   HELIX was originally developed as a PhD thesis project by Vadim
+   Zaliva under the supervision of Franz Franchetti. Ilia Zaichuk and
+   Valerii Huhnin contributed to the proofs related to RHCOL and FHCOL
+   compilation. Additionally, Ilia Zaichuk developed the numerical
+   analysis module for the Dynamic Window Monitor example. Yannick
+   Zakowski, Irene Yoon, Calvin Beck, and Steve Zdancewic performed
+   most of the work on proving the correctness of the LLVM IR
+   compilation pass. After completing this work, Yannick Zakowski took
+   on the task of assembling and proving the final high-level
+   correctness theorem.
 
 ** Papers
     - [[https://kilthub.cmu.edu/ndownloader/files/26180729][HELIX: From Math to Verified Code (PhD thesis)]]
