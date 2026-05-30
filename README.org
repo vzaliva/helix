@@ -1,6 +1,6 @@
 * HELIX
 
-[[https://travis-ci.com/vzaliva/helix][https://travis-ci.com/vzaliva/helix.svg?token=x87izvm44MdTPLHzuxzF&branch=master]]
+[[https://cloud.drone.io/vzaliva/helix][https://cloud.drone.io/api/badges/vzaliva/helix/status.svg?ref=refs/heads/master]]
 
 The HELIX project enables the synthesis of high-performance
 implementations of numerical algorithms by providing a certified
@@ -123,4 +123,3 @@ To install *optional* dependencies:
 ** Contact
 
    [[mailto:lord@crocodile.org][Vadim Zaliva]]
-
