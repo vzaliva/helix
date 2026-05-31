@@ -1,6 +1,6 @@
 * HELIX
 
-[[https://travis-ci.com/vzaliva/helix][https://travis-ci.com/vzaliva/helix.svg?token=x87izvm44MdTPLHzuxzF&branch=master]]
+[[https://gh.drone.codeminders.com/vzaliva/helix][https://gh.drone.codeminders.com/api/badges/vzaliva/helix/status.svg]]
 
 The HELIX project enables the synthesis of high-performance
 implementations of numerical algorithms by providing a certified
